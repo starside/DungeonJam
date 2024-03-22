@@ -65,7 +65,9 @@ async fn main() {
 
     let mut debug_view = DebugView::default();
     let mut pos = DVec2::from((0.0, 0.0));
-    let mut dir = DVec2::from((1.0, 0.0));
+    let mut dir = DVec2::from((-1.0, 0.0));
+    let plane_scale = -0.66;
+    let mut plane = plane_scale*dir.perp();
 
     // Set up low resolution renderer
     let (render_width, render_height) = (640u16, 480u16);
@@ -82,7 +84,8 @@ async fn main() {
             GameState::DebugView => {
                 if let Some((p, d)) = debug_view.draw_debug_view(&world, size_screen) {
                     pos = p;
-                    dir = d;
+                    dir = d.normalize();
+                    plane = dir.perp() * plane_scale;
                 } else {
                     game_state = GameState::FirstPersonView;
                 }
@@ -90,8 +93,31 @@ async fn main() {
             GameState::FirstPersonView => {
                 clear_background(BLACK);
 
-                for p in render_image.get_image_data_mut() {
-                    *p = RED.into();
+                let mut rd = render_image.get_image_data_mut();
+                for p in rd.iter_mut() {
+                    *p = BLACK.into();
+                }
+
+                for x in 0..(render_width as usize) {
+                    let x_d = x as f64;
+                    let camera_x = 2.0 * x_d / (render_width as f64) - 1.0;
+                    let ray_dir_x = dir.x + plane.x * camera_x;
+                    let ray_dir_y = dir.y + plane.y * camera_x;
+                    let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
+                    /*if x == render_width as usize / 2 {
+                        println!("x={}: pos {:?}, dir {:?}, plane {:?}, ray_dir {:?}", x, pos, dir, plane, ray_dir);
+                    }*/
+                    let (perp_wall_dist, hit_type) = cast_ray(&world, &pos, &ray_dir);
+                    let h = render_height as i32;
+                    let line_height = (h as f64 / perp_wall_dist) as i32;
+                    let draw_start = 0.max((-line_height/2) + (h/2));
+                    let draw_end = (h-1).min(line_height / 2 + h / 2);
+
+                    for y in draw_start..=draw_end {
+                        let y = y as usize;
+                        let rw = render_width as usize;
+                        rd[y * rw + x] = WHITE.into();
+                    }
                 }
 
                 // Update texture
