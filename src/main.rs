@@ -48,8 +48,6 @@ impl DebugView {
 
         draw_circle(first_step.x, first_step.y, 2.0, RED);
 
-        draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
-
         Some((ray_start, ray_dir))
     }
 }
@@ -69,6 +67,12 @@ async fn main() {
     let mut pos = DVec2::from((0.0, 0.0));
     let mut dir = DVec2::from((1.0, 0.0));
 
+    // Set up low resolution renderer
+    let (render_width, render_height) = (640u16, 480u16);
+    let mut render_image = Image::gen_image_color(render_width, render_height, BLACK);
+    let render_texture = Texture2D::from_image(&render_image);
+    render_texture.set_filter(FilterMode::Nearest);
+
     let mut game_state = GameState::DebugView;
 
     loop {
@@ -85,6 +89,26 @@ async fn main() {
             }
             GameState::FirstPersonView => {
                 clear_background(BLACK);
+
+                for p in render_image.get_image_data_mut() {
+                    *p = RED.into();
+                }
+
+                // Update texture
+                let render_texture_params = DrawTextureParams {
+                    dest_size: Some(Vec2::from(size_screen)),
+                    source: None,
+                    rotation: 0.0,
+                    flip_x: false,
+                    flip_y: false,
+                    pivot: None
+                };
+                render_texture.update(&render_image);
+                draw_texture_ex(&render_texture, 0., 0., WHITE, render_texture_params);
+
+                // Draw FPS
+                let fps = get_fps();
+                draw_text(format!("{}", fps).as_str(), 20.0, 20.0, 30.0, DARKGRAY);
                 match get_last_key_pressed() {
                     None => {}
                     Some(x) => {
