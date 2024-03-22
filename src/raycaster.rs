@@ -4,7 +4,7 @@ use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 
 // start amd end are in grid coordinates, assuming each cell has size 1,
 // so start (3.5, 14.7) would be inside cells (3, 14)
-pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> DVec2 {
+pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (f64, GridCellType) {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
 
@@ -41,6 +41,7 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> D
 
     // Look for final collision
     let mut side = 0;
+    let mut cell_hit_type = GridCellType::Empty;
 
     while !hit {
         if side_dist_x < side_dist_y {
@@ -59,7 +60,10 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> D
             Some(x) => {
                 match &x.cell_type {
                     GridCellType::Empty => {}
-                    GridCellType::Wall => {hit = true;}
+                    GridCellType::Wall => {
+                        hit = true;
+                        cell_hit_type = x.cell_type;
+                    }
                 }
             }
         }
@@ -71,7 +75,5 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> D
         perp_wall_distance = side_dist_y - delta_dist_y;
     }
 
-    let mag = perp_wall_distance;
-
-    *start + (*ray_dir*mag)
+    (perp_wall_distance, cell_hit_type)
 }

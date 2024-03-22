@@ -1,7 +1,7 @@
 use macroquad::math::{DVec2, IVec2, Vec2};
 use rand::distributions::{Distribution, Uniform};
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub enum GridCellType {
     #[default]
     Empty,
