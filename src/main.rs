@@ -5,6 +5,7 @@ mod grid_viewer;
 use std::ptr::write;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
+use crate::grid2d::GridCellType;
 use crate::raycaster::cast_ray;
 
 #[derive(Default)]
@@ -70,7 +71,7 @@ async fn main() {
     let mut plane = plane_scale*dir.perp();
 
     // Set up low resolution renderer
-    let (render_width, render_height) = (640u16, 480u16);
+    let (render_width, render_height) = (800u16, 600u16);
     let mut render_image = Image::gen_image_color(render_width, render_height, BLACK);
     let render_texture = Texture2D::from_image(&render_image);
     render_texture.set_filter(FilterMode::Nearest);
@@ -94,29 +95,33 @@ async fn main() {
                 clear_background(BLACK);
 
                 let mut rd = render_image.get_image_data_mut();
-                for p in rd.iter_mut() {
-                    *p = BLACK.into();
-                }
 
-                for x in 0..(render_width as usize) {
-                    let x_d = x as f64;
-                    let camera_x = 2.0 * x_d / (render_width as f64) - 1.0;
-                    let ray_dir_x = dir.x + plane.x * camera_x;
-                    let ray_dir_y = dir.y + plane.y * camera_x;
+                for y in 0..(render_height as usize) {
+                    let y_d = y as f64;
+                    let camera_y = 2.0 * y_d / (render_height as f64) - 1.0;
+                    let ray_dir_x = dir.x + plane.x * camera_y;
+                    let ray_dir_y = dir.y + plane.y * camera_y;
                     let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
                     /*if x == render_width as usize / 2 {
                         println!("x={}: pos {:?}, dir {:?}, plane {:?}, ray_dir {:?}", x, pos, dir, plane, ray_dir);
                     }*/
                     let (perp_wall_dist, hit_type) = cast_ray(&world, &pos, &ray_dir);
-                    let h = render_height as i32;
-                    let line_height = (h as f64 / perp_wall_dist) as i32;
-                    let draw_start = 0.max((-line_height/2) + (h/2));
-                    let draw_end = (h-1).min(line_height / 2 + h / 2);
+                    let w = render_width as i32;
+                    let line_width = (w as f64 / perp_wall_dist) as i32;
+                    let draw_start = 0.max((-line_width/2) + (w/2)) as usize;
+                    let draw_end = (w-1).min(line_width / 2 + w / 2) as usize;
+                    let rw = render_width as usize;
 
-                    for y in draw_start..=draw_end {
-                        let y = y as usize;
-                        let rw = render_width as usize;
-                        rd[y * rw + x] = WHITE.into();
+                    for x in 0..render_width {
+                        let x = x as usize;
+                        if x >= draw_start && x <= draw_end {
+                            match hit_type {
+                                GridCellType::Empty => { rd[y * rw + x] = GREEN.into(); }
+                                GridCellType::Wall => { rd[y * rw + x] = WHITE.into(); }
+                            }
+                        } else {
+                            rd[y * rw + x] = BLACK.into();
+                        }
                     }
                 }
 
