@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, ErrorKind, Write};
-use macroquad::math::{DVec2, IVec2, Vec2};
+use macroquad::math::{DVec2, IVec2};
 use rand::distributions::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
@@ -96,7 +96,7 @@ impl<T: Serialize + DeserializeOwned> Grid2D<T>{
     }
 
     pub fn load_from_file(&mut self, filename: &str){
-        let mut reader =
+        let reader =
             match OpenOptions::new().read(true).open(filename) {
                 Ok(f) => {
                     BufReader::new(f)

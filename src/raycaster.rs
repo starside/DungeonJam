@@ -1,5 +1,4 @@
-use std::ops::Deref;
-use macroquad::math::{DVec2, IVec2, Vec2};
+use macroquad::math::{DVec2, IVec2};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 
 #[derive(PartialEq)]
@@ -26,7 +25,6 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (
         f64::abs(1.0 / ray_dir.y)
     };
 
-    let mut perp_wall_distance: f64 = 0.0;
     let mut hit = false;
 
     // Calculate initial size_distance and step direction
@@ -75,11 +73,11 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (
         }
     }
 
-    if side == HitSide::Vertical {
-        perp_wall_distance = side_dist_x - delta_dist_x;
+    let perp_wall_distance = if side == HitSide::Vertical {
+        side_dist_x - delta_dist_x
     } else {
-        perp_wall_distance = side_dist_y - delta_dist_y;
-    }
+        side_dist_y - delta_dist_y
+    };
 
     (perp_wall_distance, cell_hit_type, side, IVec2::from((map_x, map_y)))
 }
