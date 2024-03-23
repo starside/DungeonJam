@@ -73,7 +73,7 @@ async fn main() {
     let mut world = Level::new("level.json", 32, 128);
 
     // Camera plane scaling factor
-    let plane_scale = -1.1;
+    let plane_scale = -1.05;
 
     let mut debug_view = debug::DebugView::default();
 

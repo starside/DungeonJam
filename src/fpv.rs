@@ -55,7 +55,7 @@ impl FirstPersonViewer {
                 rd[y * rw + x] = BLACK.into()
             }
 
-            let fog = f64::exp(-(perp_wall_dist/8.0).powi(2)) as f32;
+            let fog = f64::exp(-(perp_wall_dist/5.0).powi(2)) as f32;
             for x in draw_start..draw_end {
                 let color =
                     match hit_type {
