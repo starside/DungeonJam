@@ -7,7 +7,7 @@ mod debug;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
-use crate::level::Level;
+use crate::level::{Level, world_space_centered_coord};
 
 enum GameState {
     Debug,
@@ -20,7 +20,10 @@ async fn main() {
     let mut world = Level::new("level.json", 16, 16);
 
     let mut debug_view = debug::DebugView::default();
-    let mut pos = DVec2::from((0.0, 0.0));
+
+    let player_start = world_space_centered_coord(world.player_start, 0.0, 0.0);
+
+    let mut pos = player_start;
     let mut dir = DVec2::from((-1.0, 0.0));
     let plane_scale = -0.66;
     let mut plane = plane_scale*dir.perp();
@@ -57,7 +60,7 @@ async fn main() {
                     None => {}
                     Some(x) => {
                         match &x {
-                            KeyCode::Q => {
+                            KeyCode::F1 => {
                                 game_state = GameState::Debug;
                             }
                             _ => {}

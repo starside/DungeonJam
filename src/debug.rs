@@ -27,7 +27,7 @@ impl DebugView {
                     KeyCode::E => {
                         self.debug_line.1 = mouse_position().into();
                     },
-                    KeyCode::Q => {
+                    KeyCode::Escape => {
                         return None;
                     }
                     KeyCode::P => {
