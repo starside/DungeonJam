@@ -90,7 +90,7 @@ async fn main() {
     let mut game_state = GameState::DebugView;
 
     loop {
-        let size_screen = macroquad::miniquad::window::screen_size();
+        let size_screen = screen_size();
 
         match game_state {
             GameState::DebugView => {
@@ -125,15 +125,16 @@ async fn main() {
                     let w = render_width as i32;
                     let line_width = (w as f64 / perp_wall_dist) as i32;
                     let draw_start = 0.max((-line_width/2) + (w/2)) as usize;
-                    let draw_end = (w-1).min(line_width / 2 + w / 2) as usize;
+                    let draw_end = w.min(line_width / 2 + w / 2) as usize;
                     let rw = render_width as usize;
 
-                    let fog = f64::exp(-(perp_wall_dist/8.0).powi(2)) as f32;
+                    for x in 0..draw_start {
+                        rd[y * rw + x] = BLACK.into()
+                    }
 
-                    for x in 0..render_width {
-                        let x = x as usize;
-                        let pixel = &mut rd[y * rw + x];
-                        let color = if x >= draw_start && x <= draw_end {
+                    let fog = f64::exp(-(perp_wall_dist/8.0).powi(2)) as f32;
+                    for x in draw_start..draw_end {
+                        let color =
                             match hit_type {
                                 GridCellType::Empty => { DARKPURPLE }
                                 GridCellType::Wall => {
@@ -148,12 +149,14 @@ async fn main() {
                                         HitSide::Vertical => { BLUE } //side
                                     }
                                 }
-                            }
-                        } else {
-                            BLACK
-                        };
+                            };
                         let cv = Color::to_vec(&color);
+                        let pixel = &mut rd[y * rw + x];
                         *pixel = Color::from_vec(fog * cv).into();
+                    }
+
+                    for x in draw_end..render_width as usize {
+                        rd[y * rw + x] = BLACK.into()
                     }
                 }
 
