@@ -17,8 +17,7 @@ enum GameState {
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
-    let (world_width, world_height):(usize, usize) = (16, 16);
-    let mut world = Level::new(world_width, world_height);
+    let mut world = Level::new("level.json", 16, 16);
 
     let mut debug_view = debug::DebugView::default();
     let mut pos = DVec2::from((0.0, 0.0));
@@ -69,7 +68,13 @@ async fn main() {
             }
 
             GameState::LevelEditor => {
-                level_editor.draw_editor(&mut world, screen_size);
+                let (new_position, new_state) = level_editor.draw_editor(&mut world, screen_size, pos, dir);
+                if let Some(x) = new_position {
+                    (pos, dir) = x;
+                }
+                if let Some(x) = new_state {
+                    game_state = x;
+                }
             }
         }
 

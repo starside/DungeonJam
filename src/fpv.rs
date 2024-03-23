@@ -63,7 +63,7 @@ impl FirstPersonViewer {
                         GridCellType::Wall => {
                             match hit_side {
                                 HitSide::Horizontal => {
-                                    if dir.y > 0.0 {
+                                    if ray_dir.y > 0.0 {
                                         SKYBLUE //top
                                     } else {
                                         DARKGREEN // bottom

@@ -58,7 +58,7 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (
             side = HitSide::Horizontal;
         }
 
-        let cell = grid.cell_at_grid_coords_int(IVec2{x: map_x, y:map_y});
+        let cell = grid.get_cell_at_grid_coords_int(IVec2{x: map_x, y:map_y});
         match cell {
             None => {hit = true;}
             Some(x) => {
