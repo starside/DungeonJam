@@ -5,7 +5,7 @@ use macroquad::input::{is_mouse_button_down, mouse_position, MouseButton};
 use macroquad::math::Vec2;
 use macroquad::prelude::clear_background;
 use serde::{Deserialize, Serialize};
-use crate::{grid2d, grid_viewer};
+use crate::{grid_viewer};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 
 #[derive(Serialize, Deserialize)]
