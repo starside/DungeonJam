@@ -19,17 +19,18 @@ enum GameState {
 async fn main() {
     let mut world = Level::new("level.json", 16, 16);
 
-    let mut debug_view = debug::DebugView::default();
-
-    let player_start = world_space_centered_coord(world.player_start, 0.0, 0.0);
-
-    let mut pos = player_start;
-    let mut dir = DVec2::from((-1.0, 0.0));
+    // Camera plane scaling factor
     let plane_scale = -0.66;
-    let mut plane = plane_scale*dir.perp();
+
+    let mut debug_view = debug::DebugView::default();
 
     // Set up low resolution renderer
     let mut first_person_view = fpv::FirstPersonViewer::new(640, 480);
+
+    // Translate player starting position to world vector coords
+    let mut player_pos = world.player_start;
+    let mut player_facing: f64 = 1.0;
+
 
     // Level editor
     let mut level_editor = level::LevelEditor::new();
@@ -39,10 +40,15 @@ async fn main() {
     loop {
         let screen_size = window::screen_size();
 
+        // Handle player view
+        let mut pos = world_space_centered_coord(player_pos, 0.0, 0.0);
+        let mut dir = player_facing * DVec2::from((-1.0, 0.0));
+        let mut plane = plane_scale*dir.perp();
+
         match game_state {
             GameState::Debug => {
                 if let Some((p, d)) = debug_view.draw_debug_view(&mut world, screen_size) {
-                    pos = p;
+                    pos = p; // These need fixing
                     dir = d.normalize();
                     plane = dir.perp() * plane_scale;
                 } else {
@@ -61,7 +67,17 @@ async fn main() {
                     Some(x) => {
                         match &x {
                             KeyCode::F1 => {
+                                game_state = GameState::LevelEditor;
+                            }
+                            KeyCode::F2 => {
                                 game_state = GameState::Debug;
+                            }
+                            KeyCode::A | KeyCode::D => { //Turn around
+                                if player_facing > 0.0 {
+                                    player_facing = -1.0;
+                                } else {
+                                    player_facing = 1.0;
+                                }
                             }
                             _ => {}
                         }
