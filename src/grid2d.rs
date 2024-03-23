@@ -1,24 +1,29 @@
+use std::fs::{File, OpenOptions};
+use std::io::{BufReader, ErrorKind, Write};
 use macroquad::math::{DVec2, IVec2, Vec2};
 use rand::distributions::{Distribution, Uniform};
+use serde::{Deserialize, Serialize};
 
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, Serialize, Deserialize)]
 pub enum GridCellType {
     #[default]
     Empty,
     Wall
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct RayGridCell {
     pub cell_type: GridCellType
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Grid2D<T> {
     width: usize,
     height: usize,
     cells: Vec<T>
 }
 
-impl<T> Grid2D<T> {
+impl<T: Serialize + for<'a> Deserialize<'a>> Grid2D<T> {
     pub fn new(width: usize, height: usize) -> Self {
         Grid2D {
             width,
@@ -62,6 +67,45 @@ impl<T> Grid2D<T> {
             x: pos.x * cell_w,
             y: pos.y * cell_h
         }
+    }
+
+    fn save_to_string(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+
+    pub fn save_to_file(&self, filename: &str) -> bool {
+        let mut file =
+            match OpenOptions::new().write(true).open(filename) {
+                Ok(f) => {f}
+                Err(x) => {
+                    match x.kind() {
+                        ErrorKind::NotFound => {
+                            File::create(filename).unwrap()
+                        },
+                        _ => {
+                            panic!("Failed to open file {}, error {}", filename, x.kind());
+                        }
+                    }
+                }
+            };
+
+        let data = self.save_to_string();
+        file.write_all(data.as_ref()).expect(format!("Failed to write level to file {}", filename).as_str());
+        return true;
+    }
+
+    pub fn load_from_file(&mut self, filename: &str){
+        let mut reader =
+            match OpenOptions::new().read(true).open(filename) {
+                Ok(f) => {
+                    BufReader::new(f)
+                }
+                Err(x) => {
+                    panic!("Failed to open file: {} for reading, error {}", filename, x.kind());
+                }
+            };
+        let mut v: Grid2D<T> = serde_json::from_reader(reader).expect("Failed to deserialize level data");
+        std::mem::swap(self, &mut v);
     }
 }
 

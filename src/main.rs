@@ -16,7 +16,7 @@ struct DebugView {
 
 impl DebugView {
     // Returns position and ray_direction (not normalized), both in world coordinates
-    fn draw_debug_view(&mut self, world: &grid2d::Grid2D<grid2d::RayGridCell>, screen_size: (f32, f32))  ->
+    fn draw_debug_view(&mut self, world: &mut grid2d::Grid2D<grid2d::RayGridCell>, screen_size: (f32, f32)) ->
                                                                                                          Option<(DVec2, DVec2)>{
         clear_background(BLACK);
         grid_viewer::draw_grid2d(&world, screen_size);
@@ -32,6 +32,16 @@ impl DebugView {
                     },
                     KeyCode::Q => {
                         return None;
+                    }
+                    KeyCode::P => {
+                        let debug_file = "debug_level.json";
+                        world.save_to_file(debug_file);
+                        println!("Saved world to {}", debug_file);
+                    }
+                    KeyCode::L => {
+                        let debug_file = "debug_level.json";
+                        world.load_from_file(debug_file);
+                        println!("Loaded world from {}", debug_file);
                     }
                     _ => {}
                 }
@@ -84,7 +94,7 @@ async fn main() {
 
         match game_state {
             GameState::DebugView => {
-                if let Some((p, d)) = debug_view.draw_debug_view(&world, size_screen) {
+                if let Some((p, d)) = debug_view.draw_debug_view(&mut world, size_screen) {
                     pos = p;
                     dir = d.normalize();
                     plane = dir.perp() * plane_scale;
@@ -118,6 +128,8 @@ async fn main() {
                     let draw_end = (w-1).min(line_width / 2 + w / 2) as usize;
                     let rw = render_width as usize;
 
+                    let fog = f64::exp(-(perp_wall_dist/8.0).powi(2)) as f32;
+
                     for x in 0..render_width {
                         let x = x as usize;
                         let pixel = &mut rd[y * rw + x];
@@ -140,7 +152,6 @@ async fn main() {
                         } else {
                             BLACK
                         };
-                        let fog = f64::exp(-(perp_wall_dist/8.0).powi(2)) as f32;
                         let cv = Color::to_vec(&color);
                         *pixel = Color::from_vec(fog * cv).into();
                     }
