@@ -5,6 +5,7 @@ mod grid_viewer;
 use std::io::Error;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::grid2d::GridCellType;
 use crate::raycaster::{cast_ray, HitSide};
 
@@ -16,6 +17,37 @@ struct FirstPersonViewer {
     render_size: (u16, u16),
     render_image: Image,
     render_texture: Texture2D
+}
+
+#[derive(Serialize, Deserialize)]
+struct Level {
+    player_start: (usize, usize),
+    grid: grid2d::Grid2D<GridCellType>
+}
+
+struct LevelEditor {
+    current_brush: GridCellType
+}
+
+impl LevelEditor {
+    fn new() -> Self {
+        LevelEditor {
+            current_brush: GridCellType::Wall
+        }
+    }
+
+    fn draw_editor(&mut self,
+                   world: &mut grid2d::Grid2D<grid2d::RayGridCell>,
+                   screen_size: (f32, f32)) { //, pos: DVec2, dir: DVec2) {
+        clear_background(BLACK);
+        grid_viewer::draw_grid2d(&world, screen_size);
+
+        let mouse_screen_pos = Vec2::from(mouse_position()).as_dvec2();
+        let mouse_world_pos = world.screen_to_grid_coords(mouse_screen_pos, screen_size);
+        if is_mouse_button_down(MouseButton::Left){
+            println!("PRessed {}", mouse_world_pos);
+        }
+    }
 }
 
 impl FirstPersonViewer {
@@ -178,7 +210,10 @@ async fn main() {
     // Set up low resolution renderer
     let mut first_person_view = FirstPersonViewer::new(640, 480);
 
-    let mut game_state = GameState::Debug;
+    // Level editor
+    let mut level_editor = LevelEditor::new();
+
+    let mut game_state = GameState::LevelEditor;
 
     loop {
         let size_screen = screen_size();
@@ -215,14 +250,7 @@ async fn main() {
             }
 
             GameState::LevelEditor => {
-                clear_background(BLACK);
-                grid_viewer::draw_grid2d(&world, size_screen);
-
-                let mouse_screen_pos = Vec2::from(mouse_position()).as_dvec2();
-                let mouse_world_pos = world.screen_to_grid_coords(mouse_screen_pos, size_screen);
-                if is_mouse_button_down(MouseButton::Left){
-                    println!("PRessed {}", mouse_world_pos);
-                }
+                level_editor.draw_editor(&mut world, size_screen);
             }
         }
 
