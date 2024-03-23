@@ -103,4 +103,11 @@ impl Grid2D<RayGridCell>{
             }
         }
     }
+
+    pub fn zero(&mut self) {
+        self.cells = Vec::new();
+        for _ in 0..self.width * self.height {
+            self.cells.push(RayGridCell { cell_type: GridCellType::Empty });
+        }
+    }
 }

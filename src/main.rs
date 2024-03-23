@@ -17,10 +17,10 @@ enum GameState {
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
-    let mut world = Level::new("level.json", 16, 16);
+    let mut world = Level::new("level.json", 32, 32);
 
     // Camera plane scaling factor
-    let plane_scale = -0.66;
+    let plane_scale = -0.8;
 
     let mut debug_view = debug::DebugView::default();
 
@@ -41,7 +41,7 @@ async fn main() {
         let screen_size = window::screen_size();
 
         // Handle player view
-        let mut pos = world_space_centered_coord(player_pos, 0.0, 0.0);
+        let mut pos = world_space_centered_coord(player_pos, 0.0, -0.2);
         let mut dir = player_facing * DVec2::from((-1.0, 0.0));
         let mut plane = plane_scale*dir.perp();
 
@@ -83,7 +83,6 @@ async fn main() {
                         }
                     }
                 }
-
             }
 
             GameState::LevelEditor => {

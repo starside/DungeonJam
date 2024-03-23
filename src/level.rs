@@ -34,7 +34,7 @@ impl Level
             }
             Err(x) => {
                 println!("Level {} could not be loaded ({}), generating random", level_name, x);
-                new_level.grid.randomize();
+                new_level.grid.zero();
                 match new_level.save_to_file(level_name) {
                     Ok(_) => {
                         println!("Saved random level to {}", level_name);
