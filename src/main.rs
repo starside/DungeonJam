@@ -95,10 +95,15 @@ async fn main() {
                 clear_background(BLACK);
 
                 let mut rd = render_image.get_image_data_mut();
+                let up = if dir.x >= 0.0 {
+                    -1.0
+                } else {
+                    1.0
+                };
 
                 for y in 0..(render_height as usize) {
                     let y_d = y as f64;
-                    let camera_y = 2.0 * y_d / (render_height as f64) - 1.0;
+                    let camera_y =  up*(2.0 * y_d / (render_height as f64) - 1.0);
                     let ray_dir_x = dir.x + plane.x * camera_y;
                     let ray_dir_y = dir.y + plane.y * camera_y;
                     let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
@@ -114,13 +119,14 @@ async fn main() {
 
                     for x in 0..render_width {
                         let x = x as usize;
+                        let pixel = &mut rd[y * rw + x];
                         if x >= draw_start && x <= draw_end {
                             match hit_type {
-                                GridCellType::Empty => { rd[y * rw + x] = GREEN.into(); }
-                                GridCellType::Wall => { rd[y * rw + x] = WHITE.into(); }
+                                GridCellType::Empty => { *pixel = GREEN.into(); }
+                                GridCellType::Wall => { *pixel = WHITE.into(); }
                             }
                         } else {
-                            rd[y * rw + x] = BLACK.into();
+                            *pixel = BLACK.into();
                         }
                     }
                 }

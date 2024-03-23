@@ -36,7 +36,7 @@ impl<T> Grid2D<T> {
     }
 
     pub fn cell_at_grid_coords_int(&self, pos: IVec2) -> Option<&T> {
-        if pos.x < 0 || pos.y < 0 {
+        if pos.x < 0 || pos.y < 0 || pos.x >= self.width as i32 || pos.y >= self.height as i32 {
             return None;
         }
         let x= pos.x as usize;
