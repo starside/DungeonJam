@@ -1,5 +1,3 @@
-use std::fs::{File, OpenOptions};
-use std::io::{BufReader, ErrorKind, Write};
 use macroquad::math::{DVec2, IVec2};
 use rand::distributions::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
@@ -68,46 +66,6 @@ impl<T: Serialize + DeserializeOwned> Grid2D<T>{
             x: pos.x * cell_w,
             y: pos.y * cell_h
         }
-    }
-
-    fn save_to_string(&self) -> String {
-        serde_json::to_string(self).unwrap()
-    }
-
-    pub fn save_to_file(&self, filename: &str) -> Result<(), std::io::Error> {
-        let mut file =
-            match OpenOptions::new().write(true).open(filename) {
-                Ok(f) => {f}
-                Err(x) => {
-                    match x.kind() {
-                        ErrorKind::NotFound => {
-                            File::create(filename)?
-                        },
-                        _ => {
-                            return Err(x);
-                        }
-                    }
-                }
-            };
-
-        let data = self.save_to_string();
-        file.write_all(data.as_ref())?;
-        Ok(())
-    }
-
-    pub fn load_from_file(&mut self, filename: &str) -> Result<(), std::io::Error> {
-        let reader =
-            match OpenOptions::new().read(true).open(filename) {
-                Ok(f) => {
-                    BufReader::new(f)
-                }
-                Err(x) => {
-                    return Err(x);
-                }
-            };
-        let mut v: Grid2D<T> = serde_json::from_reader(reader)?;
-        std::mem::swap(self, &mut v);
-        Ok(())
     }
 }
 

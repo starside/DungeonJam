@@ -1,13 +1,14 @@
 mod raycaster;
 mod grid2d;
 mod grid_viewer;
+mod level;
 
-use std::io::Error;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::grid2d::GridCellType;
 use crate::raycaster::{cast_ray, HitSide};
+use crate::level::Level;
 
 #[derive(Default)]
 struct DebugView {
@@ -17,12 +18,6 @@ struct FirstPersonViewer {
     render_size: (u16, u16),
     render_image: Image,
     render_texture: Texture2D
-}
-
-#[derive(Serialize, Deserialize)]
-struct Level {
-    player_start: (usize, usize),
-    grid: grid2d::Grid2D<GridCellType>
 }
 
 struct LevelEditor {
@@ -37,13 +32,13 @@ impl LevelEditor {
     }
 
     fn draw_editor(&mut self,
-                   world: &mut grid2d::Grid2D<grid2d::RayGridCell>,
+                   world: &mut Level,
                    screen_size: (f32, f32)) { //, pos: DVec2, dir: DVec2) {
         clear_background(BLACK);
-        grid_viewer::draw_grid2d(&world, screen_size);
+        grid_viewer::draw_grid2d(&world.grid, screen_size);
 
         let mouse_screen_pos = Vec2::from(mouse_position()).as_dvec2();
-        let mouse_world_pos = world.screen_to_grid_coords(mouse_screen_pos, screen_size);
+        let mouse_world_pos = world.grid.screen_to_grid_coords(mouse_screen_pos, screen_size);
         if is_mouse_button_down(MouseButton::Left){
             println!("PRessed {}", mouse_world_pos);
         }
@@ -64,7 +59,7 @@ impl FirstPersonViewer {
     }
     fn draw_view(
         &mut self,
-        world: &grid2d::Grid2D<grid2d::RayGridCell>,
+        world: &Level,
         screen_size: (f32, f32), pos: DVec2, dir: DVec2, plane: DVec2) {
         let (render_width, render_height) = self.render_size;
         let rd = self.render_image.get_image_data_mut();
@@ -82,7 +77,7 @@ impl FirstPersonViewer {
             let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
 
 
-            let (perp_wall_dist, hit_type, hit_side, _) = cast_ray(&world, &pos, &ray_dir);
+            let (perp_wall_dist, hit_type, hit_side, _) = cast_ray(&world.grid, &pos, &ray_dir);
             let w = render_width as i32;
             let line_width = (w as f64 / perp_wall_dist) as i32;
             let draw_start = 0.max((-line_width/2) + (w/2)) as usize;
@@ -137,10 +132,10 @@ impl FirstPersonViewer {
 
 impl DebugView {
     // Returns position and ray_direction (not normalized), both in world coordinates
-    fn draw_debug_view(&mut self, world: &mut grid2d::Grid2D<grid2d::RayGridCell>, screen_size: (f32, f32)) ->
+    fn draw_debug_view(&mut self, world: &mut Level, screen_size: (f32, f32)) ->
                                                                                                          Option<(DVec2, DVec2)>{
         clear_background(BLACK);
-        grid_viewer::draw_grid2d(&world, screen_size);
+        grid_viewer::draw_grid2d(&world.grid, screen_size);
         match get_last_key_pressed() {
             None => {}
             Some(x) => {
@@ -176,12 +171,12 @@ impl DebugView {
         draw_line(self.debug_line.0.x, self.debug_line.0.y,self.debug_line.1.x, self.debug_line.1.y, 1.0, BLUE);
         draw_circle(self.debug_line.0.x, self.debug_line.0.y, 7.0, BLUE);
 
-        let ray_dir = world.screen_to_grid_coords((self.debug_line.1 - self.debug_line.0).as_dvec2(), screen_size);
-        let ray_start = world.screen_to_grid_coords(self.debug_line.0.as_dvec2(), screen_size);
+        let ray_dir = world.grid.screen_to_grid_coords((self.debug_line.1 - self.debug_line.0).as_dvec2(), screen_size);
+        let ray_start = world.grid.screen_to_grid_coords(self.debug_line.0.as_dvec2(), screen_size);
 
-        let (perp_hit_dist, _, _, _) = cast_ray(&world, &ray_start, &ray_dir);
+        let (perp_hit_dist, _, _, _) = cast_ray(&world.grid, &ray_start, &ray_dir);
 
-        let first_step = world.grid_to_screen_coords(ray_start + perp_hit_dist*ray_dir, screen_size).as_vec2();
+        let first_step = world.grid.grid_to_screen_coords(ray_start + perp_hit_dist*ray_dir, screen_size).as_vec2();
 
         draw_circle(first_step.x, first_step.y, 2.0, RED);
 
@@ -198,8 +193,7 @@ enum GameState {
 #[macroquad::main("BasicShapes")]
 async fn main() {
     let (world_width, world_height):(usize, usize) = (16, 16);
-    let mut world: grid2d::Grid2D<grid2d::RayGridCell> = grid2d::Grid2D::new(world_width, world_height);
-    world.randomize();
+    let mut world = Level::new(world_width, world_height);
 
     let mut debug_view = DebugView::default();
     let mut pos = DVec2::from((0.0, 0.0));
@@ -213,7 +207,7 @@ async fn main() {
     // Level editor
     let mut level_editor = LevelEditor::new();
 
-    let mut game_state = GameState::LevelEditor;
+    let mut game_state = GameState::Debug;
 
     loop {
         let size_screen = screen_size();
