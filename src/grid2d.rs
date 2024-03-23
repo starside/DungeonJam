@@ -3,6 +3,7 @@ use std::io::{BufReader, ErrorKind, Write};
 use macroquad::math::{DVec2, IVec2, Vec2};
 use rand::distributions::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize)]
 pub enum GridCellType {
@@ -23,7 +24,7 @@ pub struct Grid2D<T> {
     cells: Vec<T>
 }
 
-impl<T: Serialize + for<'a> Deserialize<'a>> Grid2D<T> {
+impl<T: Serialize + DeserializeOwned> Grid2D<T>{
     pub fn new(width: usize, height: usize) -> Self {
         Grid2D {
             width,
