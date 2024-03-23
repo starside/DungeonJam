@@ -1,6 +1,8 @@
 mod raycaster;
 mod grid2d;
 mod grid_viewer;
+
+use std::io::Error;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 use crate::grid2d::GridCellType;
@@ -122,13 +124,17 @@ impl DebugView {
                     }
                     KeyCode::P => {
                         let debug_file = "debug_level.json";
-                        world.save_to_file(debug_file);
-                        println!("Saved world to {}", debug_file);
+                        match world.save_to_file(debug_file) {
+                            Ok(_) => {eprintln!("Saved world to {}", debug_file);}
+                            Err(x) => {eprintln!("Failed to save world to file {}, {}", debug_file, x);}
+                        }
                     }
                     KeyCode::L => {
                         let debug_file = "debug_level.json";
-                        world.load_from_file(debug_file);
-                        println!("Loaded world from {}", debug_file);
+                        match world.load_from_file(debug_file) {
+                            Ok(_) => {println!("Loaded world from {}", debug_file);}
+                            Err(x) => {println!("Failed to load world from {}, {}", debug_file, x);}
+                        }
                     }
                     _ => {}
                 }
@@ -153,7 +159,8 @@ impl DebugView {
 
 enum GameState {
     Debug,
-    FirstPerson
+    FirstPerson,
+    LevelEditor
 }
 
 #[macroquad::main("BasicShapes")]
@@ -186,6 +193,7 @@ async fn main() {
                     game_state = GameState::FirstPerson;
                 }
             }
+
             GameState::FirstPerson => {
                 clear_background(BLACK);
                 first_person_view.draw_view(&world, size_screen, pos, dir, plane);
@@ -204,6 +212,17 @@ async fn main() {
                     }
                 }
 
+            }
+
+            GameState::LevelEditor => {
+                clear_background(BLACK);
+                grid_viewer::draw_grid2d(&world, size_screen);
+
+                let mouse_screen_pos = Vec2::from(mouse_position()).as_dvec2();
+                let mouse_world_pos = world.screen_to_grid_coords(mouse_screen_pos, size_screen);
+                if is_mouse_button_down(MouseButton::Left){
+                    println!("PRessed {}", mouse_world_pos);
+                }
             }
         }
 

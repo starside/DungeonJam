@@ -74,39 +74,40 @@ impl<T: Serialize + DeserializeOwned> Grid2D<T>{
         serde_json::to_string(self).unwrap()
     }
 
-    pub fn save_to_file(&self, filename: &str) -> bool {
+    pub fn save_to_file(&self, filename: &str) -> Result<(), std::io::Error> {
         let mut file =
             match OpenOptions::new().write(true).open(filename) {
                 Ok(f) => {f}
                 Err(x) => {
                     match x.kind() {
                         ErrorKind::NotFound => {
-                            File::create(filename).unwrap()
+                            File::create(filename)?
                         },
                         _ => {
-                            panic!("Failed to open file {}, error {}", filename, x.kind());
+                            return Err(x);
                         }
                     }
                 }
             };
 
         let data = self.save_to_string();
-        file.write_all(data.as_ref()).expect(format!("Failed to write level to file {}", filename).as_str());
-        return true;
+        file.write_all(data.as_ref())?;
+        Ok(())
     }
 
-    pub fn load_from_file(&mut self, filename: &str){
+    pub fn load_from_file(&mut self, filename: &str) -> Result<(), std::io::Error> {
         let reader =
             match OpenOptions::new().read(true).open(filename) {
                 Ok(f) => {
                     BufReader::new(f)
                 }
                 Err(x) => {
-                    panic!("Failed to open file: {} for reading, error {}", filename, x.kind());
+                    return Err(x);
                 }
             };
-        let mut v: Grid2D<T> = serde_json::from_reader(reader).expect("Failed to deserialize level data");
+        let mut v: Grid2D<T> = serde_json::from_reader(reader)?;
         std::mem::swap(self, &mut v);
+        Ok(())
     }
 }
 
