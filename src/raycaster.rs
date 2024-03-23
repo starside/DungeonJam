@@ -2,9 +2,15 @@ use std::ops::Deref;
 use macroquad::math::{DVec2, IVec2, Vec2};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 
+#[derive(PartialEq)]
+pub enum HitSide {
+    Horizontal,
+    Vertical
+}
+
 // start amd end are in grid coordinates, assuming each cell has size 1,
 // so start (3.5, 14.7) would be inside cells (3, 14)
-pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (f64, GridCellType) {
+pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (f64, GridCellType, HitSide, IVec2) {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
 
@@ -40,18 +46,18 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (
     };
 
     // Look for final collision
-    let mut side = 0;
+    let mut side = HitSide::Horizontal;
     let mut cell_hit_type = GridCellType::Empty;
 
     while !hit {
         if side_dist_x < side_dist_y {
             side_dist_x += delta_dist_x;
             map_x += step_x;
-            side = 0;
+            side = HitSide::Vertical;
         } else {
             side_dist_y += delta_dist_y;
             map_y += step_y;
-            side = 1;
+            side = HitSide::Horizontal;
         }
 
         let cell = grid.cell_at_grid_coords_int(IVec2{x: map_x, y:map_y});
@@ -69,11 +75,11 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (
         }
     }
 
-    if side == 0 {
+    if side == HitSide::Vertical {
         perp_wall_distance = side_dist_x - delta_dist_x;
     } else {
         perp_wall_distance = side_dist_y - delta_dist_y;
     }
 
-    (perp_wall_distance, cell_hit_type)
+    (perp_wall_distance, cell_hit_type, side, IVec2::from((map_x, map_y)))
 }

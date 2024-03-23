@@ -3,10 +3,11 @@ mod grid2d;
 mod grid_viewer;
 
 use std::ptr::write;
+use macroquad::input::KeyCode::Comma;
 use macroquad::miniquad::window::screen_size;
 use macroquad::prelude::*;
 use crate::grid2d::GridCellType;
-use crate::raycaster::cast_ray;
+use crate::raycaster::{cast_ray, HitSide};
 
 #[derive(Default)]
 struct DebugView {
@@ -43,7 +44,7 @@ impl DebugView {
         let ray_dir = world.screen_to_grid_coords((self.debug_line.1 - self.debug_line.0).as_dvec2(), screen_size);
         let ray_start = world.screen_to_grid_coords(self.debug_line.0.as_dvec2(), screen_size);
 
-        let (perp_hit_dist, hit_type) = cast_ray(&world, &ray_start, &ray_dir);
+        let (perp_hit_dist, hit_type, _, _) = cast_ray(&world, &ray_start, &ray_dir);
 
         let first_step = world.grid_to_screen_coords(ray_start + perp_hit_dist*ray_dir, screen_size).as_vec2();
 
@@ -71,7 +72,7 @@ async fn main() {
     let mut plane = plane_scale*dir.perp();
 
     // Set up low resolution renderer
-    let (render_width, render_height) = (800u16, 600u16);
+    let (render_width, render_height) = (640u16, 480u16);
     let mut render_image = Image::gen_image_color(render_width, render_height, BLACK);
     let render_texture = Texture2D::from_image(&render_image);
     render_texture.set_filter(FilterMode::Nearest);
@@ -110,7 +111,7 @@ async fn main() {
                     /*if x == render_width as usize / 2 {
                         println!("x={}: pos {:?}, dir {:?}, plane {:?}, ray_dir {:?}", x, pos, dir, plane, ray_dir);
                     }*/
-                    let (perp_wall_dist, hit_type) = cast_ray(&world, &pos, &ray_dir);
+                    let (perp_wall_dist, hit_type, hit_side, _) = cast_ray(&world, &pos, &ray_dir);
                     let w = render_width as i32;
                     let line_width = (w as f64 / perp_wall_dist) as i32;
                     let draw_start = 0.max((-line_width/2) + (w/2)) as usize;
@@ -120,14 +121,28 @@ async fn main() {
                     for x in 0..render_width {
                         let x = x as usize;
                         let pixel = &mut rd[y * rw + x];
-                        if x >= draw_start && x <= draw_end {
+                        let color = if x >= draw_start && x <= draw_end {
                             match hit_type {
-                                GridCellType::Empty => { *pixel = GREEN.into(); }
-                                GridCellType::Wall => { *pixel = WHITE.into(); }
+                                GridCellType::Empty => { DARKPURPLE }
+                                GridCellType::Wall => {
+                                    match hit_side {
+                                        HitSide::Horizontal => {
+                                            if dir.y > 0.0 {
+                                                SKYBLUE //top
+                                            } else {
+                                                DARKGREEN // bottom
+                                            }
+                                        }
+                                        HitSide::Vertical => { BLUE } //side
+                                    }
+                                }
                             }
                         } else {
-                            *pixel = BLACK.into();
-                        }
+                            BLACK
+                        };
+                        let fog = f64::exp(-(perp_wall_dist/8.0).powi(2)) as f32;
+                        let cv = Color::to_vec(&color);
+                        *pixel = Color::from_vec(fog * cv).into();
                     }
                 }
 
