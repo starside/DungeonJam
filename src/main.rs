@@ -4,10 +4,12 @@ mod grid_viewer;
 mod level;
 mod fpv;
 mod debug;
+mod player_movement;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
 use crate::level::{Level, ucoords_to_icoords, world_space_centered_coord};
+use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor};
 use crate::PlayerMode::{Idle, Moving};
 
 enum GameState {
@@ -36,11 +38,21 @@ impl PlayerState {
                      player_facing: &mut f64,
                      player_pos: (usize, usize),
                      level: &Level) -> PlayerMode {
+        let player_pos_ivec = IVec2::from(ucoords_to_icoords(player_pos));
         let look_up_max: f64 = 0.9;
         let look_down_max: f64 = -1.14;
         let look_speed: f64 = 0.5; // Time in seconds to cover range
         let look_range: f64 = look_up_max - look_down_max;
         let frame_time = get_frame_time() as f64;
+
+        println!("Actions: has_floor {}, has_ceiling {}, can_stem {}, can_straddle_drop {:?}, can_climb_up {}, can_climb_down {}",
+                 has_floor(player_pos_ivec, level),
+                 has_ceiling(player_pos_ivec, level),
+                 can_stem(player_pos_ivec, level),
+                 can_straddle_drop(player_pos_ivec, level),
+                 can_climb_up(player_pos_ivec, level),
+                 can_climb_down(player_pos_ivec, level)
+        );
 
         self.new_player_pos = None;
 

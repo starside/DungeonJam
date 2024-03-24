@@ -3,7 +3,7 @@ use macroquad::prelude::Vec2;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 
-#[derive(Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GridCellType {
     #[default]
     Empty,
