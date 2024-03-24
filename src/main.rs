@@ -25,8 +25,32 @@ struct PlayerState {
     last_key_pressed: Option<KeyCode>,
     mode: PlayerMode
 }
+
+// Change position, respecting boundary condidtions
+fn update_world_ucoord(pos: (usize, usize), dx: i32, dy: i32, world_size: (usize, usize)) ->(usize, usize) {
+    let posi = (pos.0 as i32 + dx, pos.1 as i32 + dy);
+    let x = if posi.0 < 0 {
+        world_size.0 - (posi.0.abs() as usize)
+    } else {
+        (posi.0 as usize) % world_size.0
+    };
+
+    let y = if posi.1 < 0 {
+        0 as usize
+    } else if posi.1 as usize >= world_size.1 {
+        world_size.1
+    } else {
+        posi.1 as usize
+    };
+
+    (x, y)
+}
 impl PlayerState {
-    fn do_idle_state(&self, player_facing: &mut f64, player_pos: &mut(usize, usize)) -> PlayerMode {
+    fn do_idle_state(&self,
+                     player_facing: &mut f64,
+                     player_pos: &mut(usize, usize),
+                     level: &Level) -> PlayerMode {
+        let world_size = level.grid.get_size();
         match self.last_key_pressed {
             None => {}
             Some(x) => {
@@ -39,22 +63,19 @@ impl PlayerState {
                         }
                     }
                     KeyCode::W => { // Move forward
-                        let pp = *player_pos;
-                        if *player_facing < 0.0 {
-                            *player_pos = (pp.0 + 1, pp.1);
-                        } else {
-                            *player_pos = (pp.0 - 1, pp.1);
-                        }
+                        *player_pos = update_world_ucoord(
+                            *player_pos,
+                            -1 * *player_facing as i32,
+                            0,
+                            world_size);
 
                     }
                     KeyCode::S => { // Move backwards
-                        let pp = *player_pos;
-                        if *player_facing > 0.0 {
-                            *player_pos = (pp.0 + 1, pp.1);
-                        } else {
-                            *player_pos = (pp.0 - 1, pp.1);
-                        }
-
+                        *player_pos = update_world_ucoord(
+                            *player_pos,
+                            *player_facing as i32,
+                            0,
+                            world_size);
                     }
                     _ => {}
                 }
@@ -127,7 +148,7 @@ async fn main() {
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut player_facing, &mut player_pos)
+                        player_state.do_idle_state(&mut player_facing, &mut player_pos, &world)
                     }
                     Moving => {
                         player_state.do_moving_state()
