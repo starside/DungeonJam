@@ -5,12 +5,13 @@ mod level;
 mod fpv;
 mod debug;
 mod player_movement;
+mod physics;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
 use crate::level::{Level, ucoords_to_icoords, world_space_centered_coord};
-use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, MoveDirection, try_move};
-use crate::PlayerMode::{Idle, Moving};
+use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
+use crate::PlayerMode::{Falling, Idle, Moving};
 
 enum GameState {
     Debug,
@@ -21,7 +22,8 @@ enum GameState {
 #[derive(PartialEq)]
 enum PlayerMode {
     Idle,
-    Moving
+    Moving,
+    Falling
 }
 
 struct PlayerState {
@@ -46,7 +48,7 @@ impl PlayerState {
         let frame_time = get_frame_time() as f64;
 
         println!("Actions: has_floor {}, has_ceiling {}, can_stem {}, can_straddle_drop {:?}, can_climb_up {}, can_climb_down {}",
-                 has_floor(player_pos_ivec, level),
+                 has_floor(player_pos_ivec, level).is_some(),
                  has_ceiling(player_pos_ivec, level),
                  can_stem(player_pos_ivec, level),
                  can_straddle_drop(player_pos_ivec, level),
@@ -65,6 +67,11 @@ impl PlayerState {
         }
 
         let facing = *player_facing as i32;
+
+        if !is_supported_position(player_pos_ivec, level) {
+            self.new_player_pos = None;
+            return Falling;
+        }
 
         let next_state = match self.last_key_pressed {
             None => {Idle}
@@ -148,6 +155,44 @@ impl PlayerState {
             }
         }
     }
+
+    fn do_falling_state(&mut self,
+                       player_pos: &mut (usize, usize),
+                       player_world_coord: &mut DVec2,
+                       level: &Level) -> PlayerMode {
+        let player_icoords = ucoords_to_icoords(*player_pos);
+        let player_pos_ivec = IVec2::from(player_icoords);
+
+        match self.new_player_pos {
+            None => {
+                if has_floor(player_pos_ivec, level).is_some() { // Fall was stopped by floor
+                    Idle
+                } else {
+                    self.new_player_pos = Some( (player_icoords.0, player_icoords.1 + 1)); // Fall down one tile
+                    self.lerp = 0.0;
+                    Falling
+                }
+            }
+            Some(x) => {
+                let p = ucoords_to_icoords(*player_pos);
+                let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
+                let final_pos = world_space_centered_coord(x, 0.0, 0.0);
+                let v = final_pos - begin_pos;
+                self.lerp += (get_frame_time()/0.125) as f64;
+                self.lerp = self.lerp.min(1.0);
+                let upc= begin_pos + self.lerp * v;
+                *player_world_coord = DVec2::from(level::apply_boundary_conditions_f64(upc, level.grid.get_size()));
+                if self.lerp == 1.0 {
+                    let nc = level::apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
+                    *player_pos = (nc.x as usize, nc.y as usize);
+                    self.new_player_pos = None;
+                }
+                Falling
+            }
+        }
+
+
+    }
 }
 
 #[macroquad::main("BasicShapes")]
@@ -204,6 +249,9 @@ async fn main() {
                     }
                     Moving => {
                         player_state.do_moving_state(&mut player_pos, &mut pos, &mut world)
+                    }
+                    Falling => {
+                        player_state.do_falling_state(&mut player_pos, &mut pos, &mut world)
                     }
                 };
 

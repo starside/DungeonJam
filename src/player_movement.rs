@@ -73,7 +73,7 @@ pub fn can_climb_down(pos: IVec2, level: &Level) -> bool {
 // Is the position supported, or is a fall guaranteed?
 pub fn is_supported_position(pos: IVec2, level: &Level) -> bool {
     if let Some(x) = can_straddle_drop(pos, level) {
-        return x;
+        return x || can_stem(pos, level);
     }
 
     true // Not a drop
