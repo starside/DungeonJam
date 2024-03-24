@@ -31,65 +31,6 @@ struct PlayerState {
     lerp: f64
 }
 
-// Change position, respecting boundary condidtions
-fn update_world_ucoord(pos: (usize, usize), dx: i32, dy: i32, world_size: (usize, usize)) ->(usize, usize) {
-    let posi = (pos.0 as i32 + dx, pos.1 as i32 + dy);
-    let x = if posi.0 < 0 {
-        world_size.0 - (posi.0.abs() as usize)
-    } else {
-        (posi.0 as usize) % world_size.0
-    };
-
-    let y = if posi.1 < 0 {
-        0 as usize
-    } else if posi.1 as usize >= world_size.1 {
-        world_size.1 - 1
-    } else {
-        posi.1 as usize
-    };
-
-    (x, y)
-}
-
-// Applies boundary conditions.  Clamp vertical, wrap horizontal
-fn apply_boundary_conditions_i32(pos: IVec2, world_size: (usize, usize)) -> IVec2 {
-    let ws = IVec2::from((world_size.0 as i32, world_size.1 as i32));
-    let nx = if pos.x < 0 {
-        ws.x + pos.x
-    } else {
-        pos.x % ws.x
-    };
-    let ny = if pos.y < 0 {
-        0
-    } else if pos.y >= ws.y {
-        ws.y - 1
-    } else {
-        pos.y
-    };
-    IVec2::from((nx, ny))
-}
-
-fn apply_boundary_conditions_f64(pos: DVec2, world_size: (usize, usize)) -> DVec2 {
-    let ws = DVec2::from((world_size.0 as f64, world_size.1 as f64));
-    let nx = if pos.x < 0.0 {
-        ws.x + pos.x
-    } else if pos.x >= ws.x{
-        pos.x - ws.x
-    } else {
-        pos.x
-    };
-
-    let ny = if pos.y < 0.0 {
-        0.0
-    } else if pos.y >= ws.y {
-        ws.y
-    } else {
-        pos.y
-    };
-
-    DVec2::from((nx, ny))
-}
-
 impl PlayerState {
     fn do_idle_state(&mut self,
                      player_facing: &mut f64,
@@ -180,10 +121,10 @@ impl PlayerState {
                 self.lerp += (get_frame_time()/0.25) as f64;
                 self.lerp = self.lerp.min(1.0);
                 let upc= begin_pos + self.lerp * v;
-                let npp = DVec2::from(apply_boundary_conditions_f64(upc, level.grid.get_size()));
+                let npp = DVec2::from(level::apply_boundary_conditions_f64(upc, level.grid.get_size()));
                 *player_world_coord = npp;
                 if self.lerp == 1.0 {
-                    let nc = apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
+                    let nc = level::apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
                     *player_pos = (nc.x as usize, nc.y as usize);
                     self.new_player_pos = None;
                     Idle
@@ -197,7 +138,7 @@ impl PlayerState {
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
-    let mut world = Level::new("level.json", 32, 128);
+    let mut world = Level::new("level.json", 16, 16);
 
     // Camera plane scaling factor
     let plane_scale = -1.05;

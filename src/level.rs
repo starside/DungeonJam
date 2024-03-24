@@ -2,7 +2,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, LineWriter, Write};
 use macroquad::color::{BLACK, colors};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
-use macroquad::math::Vec2;
+use macroquad::math::{IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
 use macroquad::shapes::draw_circle;
 use serde::{Deserialize, Serialize};
@@ -97,6 +97,45 @@ impl Level
 
 pub struct LevelEditor {
     current_brush_idx: usize
+}
+
+// Applies boundary conditions.  Clamp vertical, wrap horizontal
+pub(crate) fn apply_boundary_conditions_i32(pos: IVec2, world_size: (usize, usize)) -> IVec2 {
+    let ws = IVec2::from((world_size.0 as i32, world_size.1 as i32));
+    let nx = if pos.x < 0 {
+        ws.x + pos.x
+    } else {
+        pos.x % ws.x
+    };
+    let ny = if pos.y < 0 {
+        0
+    } else if pos.y >= ws.y {
+        ws.y - 1
+    } else {
+        pos.y
+    };
+    IVec2::from((nx, ny))
+}
+
+pub(crate) fn apply_boundary_conditions_f64(pos: DVec2, world_size: (usize, usize)) -> DVec2 {
+    let ws = DVec2::from((world_size.0 as f64, world_size.1 as f64));
+    let nx = if pos.x < 0.0 {
+        ws.x + pos.x
+    } else if pos.x >= ws.x{
+        pos.x - ws.x
+    } else {
+        pos.x
+    };
+
+    let ny = if pos.y < 0.0 {
+        0.0
+    } else if pos.y >= ws.y {
+        ws.y
+    } else {
+        pos.y
+    };
+
+    DVec2::from((nx, ny))
 }
 
 pub fn ucoords_to_dvec2(pos: (i32, i32)) -> DVec2 {
