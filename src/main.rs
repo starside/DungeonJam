@@ -23,7 +23,8 @@ enum PlayerMode {
 
 struct PlayerState {
     last_key_pressed: Option<KeyCode>,
-    mode: PlayerMode
+    mode: PlayerMode,
+    look_rotation: f64
 }
 
 // Change position, respecting boundary condidtions
@@ -46,11 +47,24 @@ fn update_world_ucoord(pos: (usize, usize), dx: i32, dy: i32, world_size: (usize
     (x, y)
 }
 impl PlayerState {
-    fn do_idle_state(&self,
+    fn do_idle_state(&mut self,
                      player_facing: &mut f64,
                      player_pos: &mut(usize, usize),
                      level: &Level) -> PlayerMode {
         let world_size = level.grid.get_size();
+
+        let is_looking = is_key_down(KeyCode::LeftShift);
+        if is_looking {
+            if is_key_down(KeyCode::W) {
+                self.look_rotation += 0.01; // Need to use time to animate
+            } else if is_key_down(KeyCode::S) {
+                self.look_rotation -= 0.01;
+            }
+            println!("{}", self.look_rotation);
+        } else {
+            self.look_rotation = 0.0; // remove this layer of indirection
+        }
+
         match self.last_key_pressed {
             None => {}
             Some(x) => {
@@ -63,19 +77,22 @@ impl PlayerState {
                         }
                     }
                     KeyCode::W => { // Move forward
-                        *player_pos = update_world_ucoord(
-                            *player_pos,
-                            -1 * *player_facing as i32,
-                            0,
-                            world_size);
-
+                        if !is_looking {
+                            *player_pos = update_world_ucoord(
+                                *player_pos,
+                                -1 * *player_facing as i32,
+                                0,
+                                world_size);
+                        }
                     }
                     KeyCode::S => { // Move backwards
-                        *player_pos = update_world_ucoord(
-                            *player_pos,
-                            *player_facing as i32,
-                            0,
-                            world_size);
+                        if !is_looking {
+                            *player_pos = update_world_ucoord(
+                                *player_pos,
+                                *player_facing as i32,
+                                0,
+                                world_size);
+                        }
                     }
                     KeyCode::Q => { // Move backwards
                         *player_pos = update_world_ucoord(
@@ -125,9 +142,7 @@ async fn main() {
     let mut level_editor = level::LevelEditor::new();
 
     let mut game_state = GameState::LevelEditor;
-    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle};
-
-    let mut angle: f64 = 0.0;
+    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0};
 
     loop {
         let screen_size = window::screen_size();
@@ -135,7 +150,6 @@ async fn main() {
         // Handle player view
         let pos = world_space_centered_coord(player_pos, 0.0, -0.0);
         let dir = player_facing * DVec2::from((-1.0, 0.0));
-        angle += 0.01;
 
         match game_state {
             GameState::Debug => {
@@ -155,7 +169,8 @@ async fn main() {
 
                 // Draw frame
                 clear_background(BLACK);
-                first_person_view.draw_view(&world, screen_size, pos, dir, plane_scale);
+                let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
+                first_person_view.draw_view(&world, screen_size, pos, rot2d.rotate(dir), plane_scale);
 
                 // Draw FPS meter
                 let fps = get_fps();
