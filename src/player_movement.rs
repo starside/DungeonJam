@@ -2,15 +2,15 @@ use macroquad::math::IVec2;
 use crate::grid2d::{GridCellType, RayGridCell};
 use crate::level::Level;
 
-pub fn has_floor(pos: IVec2, level: &Level ) -> bool {
+pub fn has_floor(pos: IVec2, level: &Level ) -> Option<IVec2> {
     let down_pos = pos + IVec2::from((0, 1));
     let cell = level.grid.get_cell_at_grid_coords_int(down_pos);
     match cell {
-        None => {true}
+        None => {Some(down_pos)}
         Some(x) => {
             match x.cell_type {
-                GridCellType::Empty => {false}
-                GridCellType::Wall => {true}
+                GridCellType::Empty => {None}
+                GridCellType::Wall => {Some(down_pos)}
             }
         }
     }
@@ -44,7 +44,7 @@ pub fn can_stem(pos: IVec2, level: &Level) -> bool {
 }
 
 pub fn can_straddle_drop(pos: IVec2, level: &Level) -> Option<bool> {
-    if has_floor(pos, level) { // Not a pit
+    if has_floor(pos, level).is_some() { // Not a pit
         return None;
     }
 
@@ -58,11 +58,11 @@ pub fn can_climb_up(pos: IVec2, level: &Level) -> bool {
     }
 
     let up_pos = pos + IVec2::from((0, -1));
-    can_stem(up_pos, level) || is_supported_position(pos, level)
+    can_stem(up_pos, level) || is_supported_position(up_pos, level)
 }
 
 pub fn can_climb_down(pos: IVec2, level: &Level) -> bool {
-    if has_floor(pos, level) {
+    if has_floor(pos, level).is_some() {
         return false;
     }
 
@@ -122,7 +122,7 @@ pub fn try_move(pos: IVec2, dir: MoveDirection, facing: i32, level: &Level) -> O
             }
         }
         MoveDirection::ClimbDown => {
-            if can_climb_down(pos, level) || !has_floor(pos, level) {
+            if can_climb_down(pos, level) || !has_floor(pos, level).is_some() {
                 let new_pos = pos + IVec2::from((0, 1));
                 Some(new_pos)
             } else {
