@@ -21,7 +21,6 @@ pub fn draw_grid2d(world: &Grid2D<RayGridCell>, screen_size: (f32, f32)) {
 }
 
 pub fn draw_grid2d_cell(pos: Vec2, cell_type: GridCellType, cell_border: f32, world: &Grid2D<RayGridCell>, screen_size: (f32, f32)) {
-    let (ww, wh) = world.get_size();
     let cell_dim = world.get_cell_screen_size(screen_size);
 
     let color = match cell_type {

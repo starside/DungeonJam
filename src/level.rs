@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter, ErrorKind, LineWriter, Write};
+use std::io::{BufReader, BufWriter, ErrorKind, Write};
 use macroquad::color::{BLACK, colors};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Vec2};
@@ -21,7 +21,7 @@ impl Level
 {
     pub fn new(level_name: &str, world_width: usize, world_height: usize) -> Self {
 
-        let mut grid = Grid2D::new(world_width, world_height);
+        let grid = Grid2D::new(world_width, world_height);
         let mut new_level = Level {
             player_start: (8, 8),
             grid,
@@ -48,7 +48,7 @@ impl Level
         new_level
     }
     pub fn save_to_file(&self, filename: &str) -> Result<(), std::io::Error> {
-        let mut file =
+        let file =
             match OpenOptions::new().write(true).truncate(true).open(filename) {
                 Ok(f) => {f}
                 Err(x) => {
@@ -136,6 +136,10 @@ pub(crate) fn apply_boundary_conditions_f64(pos: DVec2, world_size: (usize, usiz
     };
 
     DVec2::from((nx, ny))
+}
+
+pub fn ucoords_to_icoords(x: (usize, usize)) -> (i32, i32) {
+    (x.0 as i32, x.1 as i32)
 }
 
 pub fn ucoords_to_dvec2(pos: (i32, i32)) -> DVec2 {

@@ -1,6 +1,5 @@
 use macroquad::math::{DVec2, IVec2};
 use macroquad::prelude::Vec2;
-use rand::distributions::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 
@@ -93,21 +92,6 @@ impl<T: Serialize + DeserializeOwned> Grid2D<T>{
 }
 
 impl Grid2D<RayGridCell>{
-    pub fn randomize(&mut self) {
-        self.cells = Vec::new();
-
-        let mut rng = rand::thread_rng();
-        let die = Uniform::try_from(1..7).unwrap();
-        for _ in 0..self.width * self.height {
-            if die.sample(&mut rng) == 3 {
-                self.cells.push(RayGridCell { cell_type: GridCellType::Wall });
-            }
-            else {
-                self.cells.push(RayGridCell { cell_type: GridCellType::Empty });
-            }
-        }
-    }
-
     pub fn zero(&mut self) {
         self.cells = Vec::new();
         for _ in 0..self.width * self.height {

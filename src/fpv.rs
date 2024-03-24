@@ -1,4 +1,4 @@
-use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, DARKPURPLE, SKYBLUE, WHITE};
+use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};

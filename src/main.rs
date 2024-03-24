@@ -7,7 +7,7 @@ mod debug;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
-use crate::level::{Level, world_space_centered_coord};
+use crate::level::{Level, ucoords_to_icoords, world_space_centered_coord};
 use crate::PlayerMode::{Idle, Moving};
 
 enum GameState {
@@ -36,8 +36,6 @@ impl PlayerState {
                      player_facing: &mut f64,
                      player_pos: (usize, usize),
                      level: &Level) -> PlayerMode {
-        let world_size = level.grid.get_size();
-
         let look_up_max: f64 = 0.9;
         let look_down_max: f64 = -1.14;
         let look_speed: f64 = 0.5; // Time in seconds to cover range
@@ -109,7 +107,7 @@ impl PlayerState {
         match self.new_player_pos {
             None => {Idle}
             Some(x) => {
-                let p = (player_pos.0 as i32, player_pos.1 as i32);
+                let p = ucoords_to_icoords(*player_pos);
                 let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
                 let final_pos = world_space_centered_coord(x, 0.0, 0.0);
                 let v = final_pos - begin_pos;
