@@ -7,6 +7,7 @@ mod debug;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
+use macroquad::ui::Id;
 use crate::level::{Level, world_space_centered_coord};
 use crate::PlayerMode::{Idle, Moving};
 
@@ -16,6 +17,7 @@ enum GameState {
     LevelEditor
 }
 
+#[derive(PartialEq)]
 enum PlayerMode {
     Idle,
     Moving
@@ -24,7 +26,10 @@ enum PlayerMode {
 struct PlayerState {
     last_key_pressed: Option<KeyCode>,
     mode: PlayerMode,
-    look_rotation: f64
+    look_rotation: f64,
+
+    new_player_pos: Option<(usize, usize)>,
+    lerp: f64
 }
 
 // Change position, respecting boundary condidtions
@@ -49,9 +54,11 @@ fn update_world_ucoord(pos: (usize, usize), dx: i32, dy: i32, world_size: (usize
 impl PlayerState {
     fn do_idle_state(&mut self,
                      player_facing: &mut f64,
-                     player_pos: &mut(usize, usize),
+                     player_pos: (usize, usize),
                      level: &Level) -> PlayerMode {
         let world_size = level.grid.get_size();
+
+        self.new_player_pos = None;
 
         let is_looking = is_key_down(KeyCode::LeftShift);
         if is_looking {
@@ -60,13 +67,12 @@ impl PlayerState {
             } else if is_key_down(KeyCode::S) {
                 self.look_rotation -= 0.01;
             }
-            println!("{}", self.look_rotation);
         } else {
             self.look_rotation = 0.0; // remove this layer of indirection
         }
 
-        match self.last_key_pressed {
-            None => {}
+        let next_state = match self.last_key_pressed {
+            None => {Idle}
             Some(x) => {
                 match &x {
                     KeyCode::A | KeyCode::D => { //Turn around
@@ -75,48 +81,81 @@ impl PlayerState {
                         } else {
                             *player_facing = 1.0;
                         }
+                        Idle
                     }
                     KeyCode::W => { // Move forward
                         if !is_looking {
-                            *player_pos = update_world_ucoord(
-                                *player_pos,
+                            self.new_player_pos = Some(update_world_ucoord(
+                                player_pos,
                                 -1 * *player_facing as i32,
                                 0,
-                                world_size);
+                                world_size));
+                            Moving
+                        } else {
+                            Idle
                         }
                     }
                     KeyCode::S => { // Move backwards
                         if !is_looking {
-                            *player_pos = update_world_ucoord(
-                                *player_pos,
+                            self.new_player_pos = Some(update_world_ucoord(
+                                player_pos,
                                 *player_facing as i32,
                                 0,
-                                world_size);
+                                world_size));
+                            Moving
+                        } else {
+                            Idle
                         }
                     }
-                    KeyCode::Q => { // Move backwards
-                        *player_pos = update_world_ucoord(
-                            *player_pos,
+                    KeyCode::Q => { // Move up
+                        self.new_player_pos = Some(update_world_ucoord(
+                            player_pos,
                             0,
                             -1,
-                            world_size);
+                            world_size));
+                        Moving
                     }
-                    KeyCode::E => { // Move backwards
-                        *player_pos = update_world_ucoord(
-                            *player_pos,
+                    KeyCode::E => { // Move down
+                        self.new_player_pos = Some(update_world_ucoord(
+                            player_pos,
                             0,
                             1,
-                            world_size);
+                            world_size));
+                        Moving
                     }
-                    _ => {}
+                    _ => {Idle}
+                }
+            }
+        };
+
+        if next_state == Moving {
+            self.lerp = 0.0;
+        }
+
+        next_state
+    }
+
+    fn do_moving_state(&mut self,
+                       player_pos: &mut (usize, usize),
+                       player_world_coord: &mut DVec2) -> PlayerMode {
+        match self.new_player_pos {
+            None => {Idle}
+            Some(x) => {
+                let begin_pos = world_space_centered_coord(*player_pos, 0.0, 0.0);
+                let final_pos = world_space_centered_coord(x, 0.0, -0.0);
+                let v = final_pos - begin_pos;
+                self.lerp += (get_frame_time()/0.25) as f64;
+                self.lerp = self.lerp.min(1.0);
+                *player_world_coord = begin_pos + self.lerp * v;
+                if self.lerp == 1.0 {
+                    *player_pos = x;
+                    self.new_player_pos = None;
+                    Idle
+                } else {
+                    Moving
                 }
             }
         }
-        Idle
-    }
-
-    fn do_moving_state(&self) -> PlayerMode {
-        Moving
     }
 }
 
@@ -142,13 +181,13 @@ async fn main() {
     let mut level_editor = level::LevelEditor::new();
 
     let mut game_state = GameState::LevelEditor;
-    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0};
+    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0};
 
     loop {
         let screen_size = window::screen_size();
 
         // Handle player view
-        let pos = world_space_centered_coord(player_pos, 0.0, -0.0);
+        let mut pos = world_space_centered_coord(player_pos, 0.0, -0.0);
         let dir = player_facing * DVec2::from((-1.0, 0.0));
 
         match game_state {
@@ -170,10 +209,10 @@ async fn main() {
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut player_facing, &mut player_pos, &world)
+                        player_state.do_idle_state(&mut player_facing, player_pos, &world)
                     }
                     Moving => {
-                        player_state.do_moving_state()
+                        player_state.do_moving_state(&mut player_pos, &mut pos)
                     }
                 };
 
