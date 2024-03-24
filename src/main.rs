@@ -167,15 +167,6 @@ async fn main() {
                 let last_key_pressed = get_last_key_pressed();
                 player_state.last_key_pressed = last_key_pressed;
 
-                // Draw frame
-                clear_background(BLACK);
-                let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
-                first_person_view.draw_view(&world, screen_size, pos, rot2d.rotate(dir), plane_scale);
-
-                // Draw FPS meter
-                let fps = get_fps();
-                draw_text(format!("{}", fps).as_str(), 20.0, 20.0, 30.0, DARKGRAY);
-
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
@@ -200,6 +191,15 @@ async fn main() {
                         }
                     }
                 }
+
+                // Draw frame
+                clear_background(BLACK);
+                let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
+                first_person_view.draw_view(&world, screen_size, pos, rot2d.rotate(dir), plane_scale);
+
+                // Draw FPS meter
+                let fps = get_fps();
+                draw_text(format!("{}", fps).as_str(), 20.0, 20.0, 30.0, DARKGRAY);
             }
 
             GameState::LevelEditor => {
