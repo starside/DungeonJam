@@ -9,7 +9,7 @@ mod player_movement;
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
 use crate::level::{Level, ucoords_to_icoords, world_space_centered_coord};
-use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor};
+use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, MoveDirection, try_move};
 use crate::PlayerMode::{Idle, Moving};
 
 enum GameState {
@@ -64,6 +64,8 @@ impl PlayerState {
             self.look_rotation = self.look_rotation.max(look_down_max);
         }
 
+        let facing = *player_facing as i32;
+
         let next_state = match self.last_key_pressed {
             None => {Idle}
             Some(x) => {
@@ -77,28 +79,36 @@ impl PlayerState {
                         Idle
                     }
                     KeyCode::W => { // Move forward
-                        self.new_player_pos = Some(
-                            (player_pos.0 as i32 + (-1 * *player_facing as i32),
-                             player_pos.1 as i32));
-                        Moving
+                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkForward, facing, level) {
+                            self.new_player_pos = Some((new_pos.x, new_pos.y));
+                            Moving
+                        }else {
+                            Idle
+                        }
                     }
                     KeyCode::S => { // Move backwards
-                        self.new_player_pos = Some(
-                            (player_pos.0 as i32 + (*player_facing as i32),
-                             player_pos.1 as i32));
-                        Moving
+                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkBackward, facing, level) {
+                            self.new_player_pos = Some((new_pos.x, new_pos.y));
+                            Moving
+                        }else {
+                            Idle
+                        }
                     }
                     KeyCode::Q => { // Move up
-                        self.new_player_pos = Some(
-                            (player_pos.0 as i32,
-                             -1 + player_pos.1 as i32));
-                        Moving
+                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::ClimbUp, facing, level) {
+                            self.new_player_pos = Some((new_pos.x, new_pos.y));
+                            Moving
+                        }else {
+                            Idle
+                        }
                     }
                     KeyCode::E => { // Move down
-                        self.new_player_pos = Some(
-                            (player_pos.0 as i32,
-                             1 + player_pos.1 as i32));
-                        Moving
+                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::ClimbDown, facing, level) {
+                            self.new_player_pos = Some((new_pos.x, new_pos.y));
+                            Moving
+                        }else {
+                            Idle
+                        }
                     }
                     _ => {Idle}
                 }
