@@ -7,7 +7,6 @@ mod debug;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
-use macroquad::ui::Id;
 use crate::level::{Level, world_space_centered_coord};
 use crate::PlayerMode::{Idle, Moving};
 
@@ -28,7 +27,7 @@ struct PlayerState {
     mode: PlayerMode,
     look_rotation: f64,
 
-    new_player_pos: Option<(usize, usize)>,
+    new_player_pos: Option<(i32, i32)>,
     lerp: f64
 }
 
@@ -51,6 +50,46 @@ fn update_world_ucoord(pos: (usize, usize), dx: i32, dy: i32, world_size: (usize
 
     (x, y)
 }
+
+// Applies boundary conditions.  Clamp vertical, wrap horizontal
+fn apply_boundary_conditions_i32(pos: IVec2, world_size: (usize, usize)) -> IVec2 {
+    let ws = IVec2::from((world_size.0 as i32, world_size.1 as i32));
+    let nx = if pos.x < 0 {
+        ws.x + pos.x
+    } else {
+        pos.x % ws.x
+    };
+    let ny = if pos.y < 0 {
+        0
+    } else if pos.y >= ws.y {
+        ws.y - 1
+    } else {
+        pos.y
+    };
+    IVec2::from((nx, ny))
+}
+
+fn apply_boundary_conditions_f64(pos: DVec2, world_size: (usize, usize)) -> DVec2 {
+    let ws = DVec2::from((world_size.0 as f64, world_size.1 as f64));
+    let nx = if pos.x < 0.0 {
+        ws.x + pos.x
+    } else if pos.x >= ws.x{
+        pos.x - ws.x
+    } else {
+        pos.x
+    };
+
+    let ny = if pos.y < 0.0 {
+        0.0
+    } else if pos.y >= ws.y {
+        ws.y
+    } else {
+        pos.y
+    };
+
+    DVec2::from((nx, ny))
+}
+
 impl PlayerState {
     fn do_idle_state(&mut self,
                      player_facing: &mut f64,
@@ -85,11 +124,9 @@ impl PlayerState {
                     }
                     KeyCode::W => { // Move forward
                         if !is_looking {
-                            self.new_player_pos = Some(update_world_ucoord(
-                                player_pos,
-                                -1 * *player_facing as i32,
-                                0,
-                                world_size));
+                            self.new_player_pos = Some(
+                                (player_pos.0 as i32 + (-1 * *player_facing as i32),
+                                 player_pos.1 as i32));
                             Moving
                         } else {
                             Idle
@@ -97,30 +134,24 @@ impl PlayerState {
                     }
                     KeyCode::S => { // Move backwards
                         if !is_looking {
-                            self.new_player_pos = Some(update_world_ucoord(
-                                player_pos,
-                                *player_facing as i32,
-                                0,
-                                world_size));
+                            self.new_player_pos = Some(
+                                (player_pos.0 as i32 + (*player_facing as i32),
+                                 player_pos.1 as i32));
                             Moving
                         } else {
                             Idle
                         }
                     }
                     KeyCode::Q => { // Move up
-                        self.new_player_pos = Some(update_world_ucoord(
-                            player_pos,
-                            0,
-                            -1,
-                            world_size));
+                        self.new_player_pos = Some(
+                            (player_pos.0 as i32,
+                             -1 + player_pos.1 as i32));
                         Moving
                     }
                     KeyCode::E => { // Move down
-                        self.new_player_pos = Some(update_world_ucoord(
-                            player_pos,
-                            0,
-                            1,
-                            world_size));
+                        self.new_player_pos = Some(
+                            (player_pos.0 as i32,
+                             1 + player_pos.1 as i32));
                         Moving
                     }
                     _ => {Idle}
@@ -137,18 +168,23 @@ impl PlayerState {
 
     fn do_moving_state(&mut self,
                        player_pos: &mut (usize, usize),
-                       player_world_coord: &mut DVec2) -> PlayerMode {
+                       player_world_coord: &mut DVec2,
+                       level: &Level) -> PlayerMode {
         match self.new_player_pos {
             None => {Idle}
             Some(x) => {
-                let begin_pos = world_space_centered_coord(*player_pos, 0.0, 0.0);
+                let p = (player_pos.0 as i32, player_pos.1 as i32);
+                let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
                 let final_pos = world_space_centered_coord(x, 0.0, -0.0);
                 let v = final_pos - begin_pos;
                 self.lerp += (get_frame_time()/0.25) as f64;
                 self.lerp = self.lerp.min(1.0);
-                *player_world_coord = begin_pos + self.lerp * v;
+                let upc= begin_pos + self.lerp * v;
+                let npp = DVec2::from(apply_boundary_conditions_f64(upc, level.grid.get_size()));
+                *player_world_coord = npp;
                 if self.lerp == 1.0 {
-                    *player_pos = x;
+                    let nc = apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
+                    *player_pos = (nc.x as usize, nc.y as usize);
                     self.new_player_pos = None;
                     Idle
                 } else {
@@ -187,7 +223,7 @@ async fn main() {
         let screen_size = window::screen_size();
 
         // Handle player view
-        let mut pos = world_space_centered_coord(player_pos, 0.0, -0.0);
+        let mut pos = world_space_centered_coord((player_pos.0 as i32, player_pos.1 as i32), 0.0, -0.0);
         let dir = player_facing * DVec2::from((-1.0, 0.0));
 
         match game_state {
@@ -212,7 +248,7 @@ async fn main() {
                         player_state.do_idle_state(&mut player_facing, player_pos, &world)
                     }
                     Moving => {
-                        player_state.do_moving_state(&mut player_pos, &mut pos)
+                        player_state.do_moving_state(&mut player_pos, &mut pos, &mut world)
                     }
                 };
 
