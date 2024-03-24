@@ -38,7 +38,7 @@ fn update_world_ucoord(pos: (usize, usize), dx: i32, dy: i32, world_size: (usize
     let y = if posi.1 < 0 {
         0 as usize
     } else if posi.1 as usize >= world_size.1 {
-        world_size.1
+        world_size.1 - 1
     } else {
         posi.1 as usize
     };
@@ -77,6 +77,20 @@ impl PlayerState {
                             0,
                             world_size);
                     }
+                    KeyCode::Q => { // Move backwards
+                        *player_pos = update_world_ucoord(
+                            *player_pos,
+                            0,
+                            -1,
+                            world_size);
+                    }
+                    KeyCode::E => { // Move backwards
+                        *player_pos = update_world_ucoord(
+                            *player_pos,
+                            0,
+                            1,
+                            world_size);
+                    }
                     _ => {}
                 }
             }
@@ -113,13 +127,15 @@ async fn main() {
     let mut game_state = GameState::LevelEditor;
     let mut player_state = PlayerState{last_key_pressed: None, mode: Idle};
 
+    let mut angle: f64 = 0.0;
+
     loop {
         let screen_size = window::screen_size();
 
         // Handle player view
         let pos = world_space_centered_coord(player_pos, 0.0, -0.0);
         let dir = player_facing * DVec2::from((-1.0, 0.0));
-        let plane = plane_scale*dir.perp();
+        angle += 0.01;
 
         match game_state {
             GameState::Debug => {
@@ -139,7 +155,7 @@ async fn main() {
 
                 // Draw frame
                 clear_background(BLACK);
-                first_person_view.draw_view(&world, screen_size, pos, dir, plane);
+                first_person_view.draw_view(&world, screen_size, pos, dir, plane_scale);
 
                 // Draw FPS meter
                 let fps = get_fps();

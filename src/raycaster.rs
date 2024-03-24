@@ -12,6 +12,7 @@ pub enum HitSide {
 pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (f64, GridCellType, HitSide, IVec2) {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
+    let max_ray_distance = 16.0;
 
     let delta_dist_x = if ray_dir.x == 0.0 {
         f64::MAX
@@ -70,6 +71,12 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (
                     }
                 }
             }
+        }
+
+        let current_position = side_dist_x.min(side_dist_y) * *ray_dir;
+        if current_position.length() >= max_ray_distance {
+            cell_hit_type = GridCellType::Empty;
+            break;
         }
     }
 

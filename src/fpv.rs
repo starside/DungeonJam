@@ -27,7 +27,12 @@ impl FirstPersonViewer {
     pub fn draw_view(
         &mut self,
         world: &Level,
-        screen_size: (f32, f32), pos: DVec2, dir: DVec2, plane: DVec2) {
+        screen_size: (f32, f32),
+        pos: DVec2,
+        dir: DVec2,
+        plane_scale: f64) {
+
+        let plane = plane_scale*dir.perp();
         let (render_width, render_height) = self.render_size;
         let rd = self.render_image.get_image_data_mut();
         let up = if dir.x >= 0.0 {
@@ -43,7 +48,6 @@ impl FirstPersonViewer {
             let ray_dir_y = dir.y + plane.y * camera_y;
             let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
 
-
             let (perp_wall_dist, hit_type, hit_side, _) = cast_ray(&world.grid, &pos, &ray_dir);
             let w = render_width as i32;
             let line_width = (w as f64 / perp_wall_dist) as i32;
@@ -51,28 +55,29 @@ impl FirstPersonViewer {
             let draw_end = w.min(line_width / 2 + w / 2) as usize;
             let rw = render_width as usize;
 
+            let fog = f64::exp(-(perp_wall_dist/10.0).powi(2)) as f32;
+            let color =
+                match hit_type {
+                    GridCellType::Empty => { BLACK }
+                    GridCellType::Wall => {
+                        match hit_side {
+                            HitSide::Horizontal => {
+                                if ray_dir.y > 0.0 {
+                                    SKYBLUE //top
+                                } else {
+                                    DARKGREEN // bottom
+                                }
+                            }
+                            HitSide::Vertical => { BLUE } //side
+                        }
+                    }
+                };
+
             for x in 0..draw_start {
                 rd[y * rw + x] = BLACK.into()
             }
 
-            let fog = f64::exp(-(perp_wall_dist/5.0).powi(2)) as f32;
             for x in draw_start..draw_end {
-                let color =
-                    match hit_type {
-                        GridCellType::Empty => { DARKPURPLE }
-                        GridCellType::Wall => {
-                            match hit_side {
-                                HitSide::Horizontal => {
-                                    if ray_dir.y > 0.0 {
-                                        SKYBLUE //top
-                                    } else {
-                                        DARKGREEN // bottom
-                                    }
-                                }
-                                HitSide::Vertical => { BLUE } //side
-                            }
-                        }
-                    };
                 let cv = Color::to_vec(&color);
                 let pixel = &mut rd[y * rw + x];
                 *pixel = Color::from_vec(fog * cv).into();

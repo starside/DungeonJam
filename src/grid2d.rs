@@ -47,10 +47,14 @@ impl<T: Serialize + DeserializeOwned> Grid2D<T>{
     }
 
     pub fn get_cell_at_grid_coords_int(&self, pos: IVec2) -> Option<&T> {
-        if pos.x < 0 || pos.y < 0 || pos.x >= self.width as i32 || pos.y >= self.height as i32 {
+        if pos.y < 0 || pos.y >= self.height as i32 {
             return None;
         }
-        let x= pos.x as usize;
+        let x = if pos.x < 0 {
+            ((self.width as i32) + pos.x) as usize
+        } else {
+            pos.x as usize % self.width
+        };
         let y = pos.y as usize;
         self.cells.get(y * self.width + x)
     }
