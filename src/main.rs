@@ -38,17 +38,20 @@ impl PlayerState {
                      level: &Level) -> PlayerMode {
         let world_size = level.grid.get_size();
 
+        let look_up_max: f64 = 0.9;
+        let look_down_max: f64 = -1.14;
+        let look_speed: f64 = 0.5; // Time in seconds to cover range
+        let look_range: f64 = look_up_max - look_down_max;
+        let frame_time = get_frame_time() as f64;
+
         self.new_player_pos = None;
 
-        let is_looking = is_key_down(KeyCode::LeftShift);
-        if is_looking {
-            if is_key_down(KeyCode::W) {
-                self.look_rotation += 0.01; // Need to use time to animate
-            } else if is_key_down(KeyCode::S) {
-                self.look_rotation -= 0.01;
-            }
-        } else {
-            self.look_rotation = 0.0; // remove this layer of indirection
+        if is_key_down(KeyCode::Up) {
+            self.look_rotation += look_range/look_speed * frame_time; // Need to use time to animate
+            self.look_rotation = self.look_rotation.min(look_up_max);
+        } else if is_key_down(KeyCode::Down) {
+            self.look_rotation -= look_range/look_speed * frame_time;
+            self.look_rotation = self.look_rotation.max(look_down_max);
         }
 
         let next_state = match self.last_key_pressed {
@@ -64,24 +67,16 @@ impl PlayerState {
                         Idle
                     }
                     KeyCode::W => { // Move forward
-                        if !is_looking {
-                            self.new_player_pos = Some(
-                                (player_pos.0 as i32 + (-1 * *player_facing as i32),
-                                 player_pos.1 as i32));
-                            Moving
-                        } else {
-                            Idle
-                        }
+                        self.new_player_pos = Some(
+                            (player_pos.0 as i32 + (-1 * *player_facing as i32),
+                             player_pos.1 as i32));
+                        Moving
                     }
                     KeyCode::S => { // Move backwards
-                        if !is_looking {
-                            self.new_player_pos = Some(
-                                (player_pos.0 as i32 + (*player_facing as i32),
-                                 player_pos.1 as i32));
-                            Moving
-                        } else {
-                            Idle
-                        }
+                        self.new_player_pos = Some(
+                            (player_pos.0 as i32 + (*player_facing as i32),
+                             player_pos.1 as i32));
+                        Moving
                     }
                     KeyCode::Q => { // Move up
                         self.new_player_pos = Some(
@@ -116,13 +111,12 @@ impl PlayerState {
             Some(x) => {
                 let p = (player_pos.0 as i32, player_pos.1 as i32);
                 let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
-                let final_pos = world_space_centered_coord(x, 0.0, -0.0);
+                let final_pos = world_space_centered_coord(x, 0.0, 0.0);
                 let v = final_pos - begin_pos;
                 self.lerp += (get_frame_time()/0.25) as f64;
                 self.lerp = self.lerp.min(1.0);
                 let upc= begin_pos + self.lerp * v;
-                let npp = DVec2::from(level::apply_boundary_conditions_f64(upc, level.grid.get_size()));
-                *player_world_coord = npp;
+                *player_world_coord = DVec2::from(level::apply_boundary_conditions_f64(upc, level.grid.get_size()));
                 if self.lerp == 1.0 {
                     let nc = level::apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
                     *player_pos = (nc.x as usize, nc.y as usize);
