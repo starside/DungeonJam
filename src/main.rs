@@ -7,6 +7,7 @@ mod debug;
 mod player_movement;
 mod physics;
 mod sprites;
+mod image;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
