@@ -9,7 +9,8 @@ use crate::raycaster::{cast_ray, HitSide};
 pub struct FirstPersonViewer {
     render_size: (u16, u16),
     render_image: Image,
-    render_texture: Texture2D
+    render_texture: Texture2D,
+    z_buffer: Vec<f64>
 }
 
 impl FirstPersonViewer {
@@ -17,11 +18,16 @@ impl FirstPersonViewer {
         let render_image = Image::gen_image_color(width, height, BLACK);
         let render_texture = Texture2D::from_image(&render_image);
         render_texture.set_filter(FilterMode::Nearest);
+        let mut z_buffer: Vec<f64> = Vec::with_capacity(height as usize);
+        for y in 0..height as usize {
+            z_buffer.push(f64::INFINITY);
+        }
 
         FirstPersonViewer {
             render_size: (width, height),
             render_image,
-            render_texture
+            render_texture,
+            z_buffer
         }
     }
     pub fn draw_view(
@@ -64,17 +70,11 @@ impl FirstPersonViewer {
                 wall_hit_coord.x - wall_hit_coord.x.floor()
             };
 
-            // 4 different wall directions
-            /*let lodevfloor = if hit_side == HitSide::Vertical && ray_dir.x > 0.0 {
-                DVec2::from((map_coord.x as f64, map_coord.y as f64 + wall_x))
-            } else if hit_side == HitSide::Vertical && ray_dir_x < 0.0 {
-                DVec2::from((map_coord.x as f64 + 1.0, map_coord.y as f64 + wall_x))
-            } else if hit_side == HitSide::Horizontal && ray_dir_y > 0.0 {
-                DVec2::from((map_coord.x as f64 + wall_x, map_coord.y as f64))
-            } else {
-                DVec2::from((map_coord.x as f64 + wall_x, map_coord.y as f64 + 1.0))
-            };*/ // same as wall_hit_coord
-            //println!("Lodev {}, Vecotr {}", lodevfloor, wall_hit_coord);
+            // Store z buffer
+            match hit_type {
+                GridCellType::Empty => {self.z_buffer[y] = f64::INFINITY}
+                GridCellType::Wall => {self.z_buffer[y] = perp_wall_dist}
+            }
 
             let dist_wall = perp_wall_dist;
             let dist_player = 0.0f64;
@@ -98,7 +98,7 @@ impl FirstPersonViewer {
                 };
 
             for x in 0..draw_start {
-                let current_dist = w as f64 / (2.0 * x as f64 - w as f64);
+                let current_dist = w as f64 / (2.0 * x as f64 - w as f64); // This can be a table
                 let weight = (current_dist - dist_player) / (dist_wall - dist_player);
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
                 let v = 1.0-current_floor_pos.y as f32 / 64.0;

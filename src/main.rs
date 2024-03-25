@@ -218,6 +218,7 @@ async fn main() {
 
     loop {
         let screen_size = window::screen_size();
+        clear_background(BLACK.into());
 
         // Handle player view
         let mut pos = world_space_centered_coord((player_pos.0 as i32, player_pos.1 as i32), 0.0, -0.0);
