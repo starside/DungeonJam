@@ -36,27 +36,12 @@ struct PlayerState {
 }
 
 impl PlayerState {
-    fn do_idle_state(&mut self,
-                     player_facing: &mut f64,
-                     player_pos: (usize, usize),
-                     level: &Level) -> PlayerMode {
-        let player_pos_ivec = IVec2::from(ucoords_to_icoords(player_pos));
+    fn player_look(&mut self) {
         let look_up_max: f64 = 0.9;
         let look_down_max: f64 = -1.14;
         let look_speed: f64 = 0.5; // Time in seconds to cover range
         let look_range: f64 = look_up_max - look_down_max;
         let frame_time = get_frame_time() as f64;
-
-        println!("Actions: has_floor {}, has_ceiling {}, can_stem {}, can_straddle_drop {:?}, can_climb_up {}, can_climb_down {}",
-                 has_floor(player_pos_ivec, level).is_some(),
-                 has_ceiling(player_pos_ivec, level),
-                 can_stem(player_pos_ivec, level),
-                 can_straddle_drop(player_pos_ivec, level),
-                 can_climb_up(player_pos_ivec, level),
-                 can_climb_down(player_pos_ivec, level)
-        );
-
-        self.new_player_pos = None;
 
         if is_key_down(KeyCode::Up) {
             self.look_rotation += look_range/look_speed * frame_time; // Need to use time to animate
@@ -65,6 +50,14 @@ impl PlayerState {
             self.look_rotation -= look_range/look_speed * frame_time;
             self.look_rotation = self.look_rotation.max(look_down_max);
         }
+    }
+    fn do_idle_state(&mut self,
+                     player_facing: &mut f64,
+                     player_pos: (usize, usize),
+                     level: &Level) -> PlayerMode {
+        let player_pos_ivec = IVec2::from(ucoords_to_icoords(player_pos));
+
+        self.new_player_pos = None;
 
         let facing = *player_facing as i32;
 
@@ -72,6 +65,8 @@ impl PlayerState {
             self.new_player_pos = None;
             return Falling;
         }
+
+        self.player_look();
 
         let next_state = match self.last_key_pressed {
             None => {Idle}
@@ -163,6 +158,8 @@ impl PlayerState {
         let player_icoords = ucoords_to_icoords(*player_pos);
         let player_pos_ivec = IVec2::from(player_icoords);
 
+        self.player_look();
+
         match self.new_player_pos {
             None => {
                 if has_floor(player_pos_ivec, level).is_some() { // Fall was stopped by floor
@@ -197,7 +194,7 @@ impl PlayerState {
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
-    let mut world = Level::new("level.json", 16, 16);
+    let mut world = Level::new("level.json", 16, 64);
 
     // Camera plane scaling factor
     let plane_scale = -1.05;
