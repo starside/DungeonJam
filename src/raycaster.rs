@@ -3,13 +3,14 @@ use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 
 #[derive(PartialEq)]
 pub enum HitSide {
-    Horizontal,
-    Vertical
+    Vertical, // 0 in lodev
+    Horizontal // 1
 }
 
 // start amd end are in grid coordinates, assuming each cell has size 1,
 // so start (3.5, 14.7) would be inside cells (3, 14)
-pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) -> (f64, GridCellType, HitSide, IVec2) {
+pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2) ->
+                                            (f64, GridCellType, HitSide, IVec2) {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
     let max_ray_distance = 16.0;

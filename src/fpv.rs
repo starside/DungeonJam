@@ -1,5 +1,5 @@
 use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
-use macroquad::math::{DVec2, Vec2};
+use macroquad::math::{DVec2, IVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
 use crate::grid2d::GridCellType;
@@ -48,12 +48,36 @@ impl FirstPersonViewer {
             let ray_dir_y = dir.y + plane.y * camera_y;
             let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
 
-            let (perp_wall_dist, hit_type, hit_side, _) = cast_ray(&world.grid, &pos, &ray_dir);
+            let (perp_wall_dist, hit_type, hit_side, map_coord)
+                = cast_ray(&world.grid, &pos, &ray_dir);
             let w = render_width as i32;
             let line_width = (w as f64 / perp_wall_dist) as i32;
             let draw_start = 0.max((-line_width/2) + (w/2)) as usize;
             let draw_end = w.min(line_width / 2 + w / 2) as usize;
             let rw = render_width as usize;
+
+            // Calculate wall_x
+            let wall_hit_coord = pos + perp_wall_dist * ray_dir;
+            let wall_x: f64 = if hit_side == HitSide::Vertical {
+                wall_hit_coord.y - wall_hit_coord.y.floor()
+            } else {
+                wall_hit_coord.x - wall_hit_coord.x.floor()
+            };
+
+            // 4 different wall directions
+            /*let lodevfloor = if hit_side == HitSide::Vertical && ray_dir.x > 0.0 {
+                DVec2::from((map_coord.x as f64, map_coord.y as f64 + wall_x))
+            } else if hit_side == HitSide::Vertical && ray_dir_x < 0.0 {
+                DVec2::from((map_coord.x as f64 + 1.0, map_coord.y as f64 + wall_x))
+            } else if hit_side == HitSide::Horizontal && ray_dir_y > 0.0 {
+                DVec2::from((map_coord.x as f64 + wall_x, map_coord.y as f64))
+            } else {
+                DVec2::from((map_coord.x as f64 + wall_x, map_coord.y as f64 + 1.0))
+            };*/ // same as wall_hit_coord
+            //println!("Lodev {}, Vecotr {}", lodevfloor, wall_hit_coord);
+
+            let dist_wall = perp_wall_dist;
+            let dist_player = 0.0f64;
 
             let fog = f64::exp(-(perp_wall_dist/10.0).powi(2)) as f32;
             let color =
@@ -74,7 +98,12 @@ impl FirstPersonViewer {
                 };
 
             for x in 0..draw_start {
-                rd[y * rw + x] = BLACK.into()
+                let current_dist = w as f64 / (2.0 * x as f64 - w as f64);
+                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
+                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
+                let v = 1.0-current_floor_pos.y as f32 / 64.0;
+                rd[y * rw + x] = Color::new(0.8*v, v, v, 1.0).into();
+                rd[y * rw + (render_width-1) as usize - x ] = Color::new(v, 0.8*v, v, 1.0).into();
             }
 
             for x in draw_start..draw_end {
@@ -83,9 +112,13 @@ impl FirstPersonViewer {
                 *pixel = Color::from_vec(fog * cv).into();
             }
 
-            for x in draw_end..render_width as usize {
-                rd[y * rw + x] = BLACK.into()
-            }
+            /*for x in draw_end..render_width as usize {
+                let current_dist = w as f64 / (2.0 * x as f64 - w as f64);
+                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
+                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
+                let v = 1.0-current_floor_pos.y as f32 / 64.0;
+                rd[y * rw + x] = Color::new(v, v, v, 1.0).into();
+            }*/
         }
 
         // Update texture

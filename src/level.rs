@@ -167,7 +167,7 @@ impl LevelEditor {
         ];
         let current_brush = brush_table[self.current_brush_idx];
 
-        clear_background(BLACK);
+        //clear_background(BLACK);
         grid_viewer::draw_grid2d(&world.grid, screen_size);
 
         let mouse_screen_pos = Vec2::from(mouse_position()).as_dvec2();

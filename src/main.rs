@@ -268,7 +268,7 @@ async fn main() {
                 }
 
                 // Draw frame
-                clear_background(BLACK);
+                //clear_background(BLACK);
                 let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
                 first_person_view.draw_view(&world, screen_size, pos, rot2d.rotate(dir), plane_scale);
 
