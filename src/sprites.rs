@@ -35,7 +35,7 @@ impl Sprites {
     pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType) {
         self.sp_positions.push(pos);
         self.sp_type.push(sprite_type);
-        self.sp_size.push(DVec3::from((0.1, 0.1, -0.5))); // x scale, y scale, x offset
+        self.sp_size.push(DVec3::from((0.1, 0.1, 0.0))); // x scale, y scale, x offset
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
     pub fn draw_sprites(
@@ -98,14 +98,16 @@ impl Sprites {
 
             let rd = fpv.render_image.get_image_data_mut();
 
+            let mut tex_y = tex_start_y;
             for y in draw_start_y..=draw_end_y {
+                let mut tex_x = tex_start_x;
                 if transform.y < fpv.z_buffer[y] {
                     for x in draw_start_x..=draw_end_x {
-                        let xc = tex_start_x + ((x-draw_start_x) as f32) * tex_delta_x;
-                        let yc = tex_start_y + ((y-draw_start_y) as f32) * tex_delta_y ;
-                        rd[y*rw + x] = Color::new(xc, yc, 1.0, 1.0).into();
+                        rd[y*rw + x] = Color::new(1.0f32.min(tex_x), 1.0f32.min(tex_y), 1.0, 1.0).into();
+                        tex_x += tex_delta_x;
                     }
                 }
+                tex_y += tex_delta_y;
             }
         }
     }
