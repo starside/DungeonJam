@@ -6,6 +6,7 @@ mod fpv;
 mod debug;
 mod player_movement;
 mod physics;
+mod sprites;
 
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
@@ -204,11 +205,12 @@ async fn main() {
     // Set up low resolution renderer
     let mut first_person_view = fpv::FirstPersonViewer::new(640, 480);
 
+    let mut sprite_manager = sprites::Sprites::new();
+
     // Translate player starting position to world vector coords.
     // These are the gameplay variables, the others should not be modified directly
     let mut player_pos = world.player_start;
     let mut player_facing: f64 = 1.0;
-
 
     // Level editor
     let mut level_editor = level::LevelEditor::new();
@@ -271,7 +273,10 @@ async fn main() {
                 // Draw frame
                 //clear_background(BLACK);
                 let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
-                first_person_view.draw_view(&world, screen_size, pos, rot2d.rotate(dir), plane_scale);
+                let view_dir = rot2d.rotate(dir);
+                first_person_view.draw_view(&world, pos, view_dir, plane_scale);
+                sprite_manager.draw_sprites(&mut first_person_view, pos, view_dir, player_facing*plane_scale);
+                first_person_view.render(screen_size);
 
                 // Draw FPS meter
                 let fps = get_fps();
@@ -279,7 +284,7 @@ async fn main() {
             }
 
             GameState::LevelEditor => {
-                let (new_position, new_state) = level_editor.draw_editor(&mut world, screen_size, pos, dir);
+                let (new_position, new_state) = level_editor.draw_editor(&mut world, &mut sprite_manager, screen_size, pos, dir);
                 if let Some(x) = new_position {
                     //todo!()
                     //(pos, dir) = x;

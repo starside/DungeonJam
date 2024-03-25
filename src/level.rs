@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
-use macroquad::color::{BLACK, colors};
+use macroquad::color::{BLACK, colors, GREEN};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{GameState, grid_viewer};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
+use crate::sprites::{Sprites, SpriteType};
 
 #[derive(Serialize, Deserialize)]
 pub struct Level {
@@ -159,6 +160,7 @@ impl LevelEditor {
 
     pub fn draw_editor(&mut self,
                    world: &mut Level,
+                   sprite_manager: &mut Sprites,
                    screen_size: (f32, f32), pos: DVec2, dir: DVec2) -> (Option<(DVec2, DVec2)>, Option<GameState>) {
         let mut new_game_state: Option<GameState> = None;
         let brush_table: [GridCellType; 2] = [
@@ -184,6 +186,12 @@ impl LevelEditor {
         let player_screen_coords = world.grid.grid_to_screen_coords(pos, screen_size).as_vec2();
         draw_circle(player_screen_coords.x, player_screen_coords.y, 3.0, colors::GOLD);
 
+        // Draw sprite positions
+        for s in sprite_manager.sp_positions.iter() {
+            let p = world.grid.grid_to_screen_coords(*s, screen_size).as_vec2();
+            draw_circle(p.x, p.y, 3.0, GREEN);
+        }
+
         if is_mouse_button_pressed(MouseButton::Middle){
             self.current_brush_idx = (self.current_brush_idx + 1) % brush_table.len();
         }
@@ -200,6 +208,9 @@ impl LevelEditor {
                         let t = mouse_world_pos.as_uvec2();
                         let t = (t.x as usize, t.y as usize);
                         world.player_start = t;
+                    }
+                    KeyCode::E => {
+                        sprite_manager.add_sprite(mouse_world_pos, SpriteType::Debug);
                     }
                     KeyCode::Escape => {
                         new_game_state = Some(GameState::FirstPerson);

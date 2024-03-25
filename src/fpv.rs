@@ -7,10 +7,10 @@ use crate::level::Level;
 use crate::raycaster::{cast_ray, HitSide};
 
 pub struct FirstPersonViewer {
-    render_size: (u16, u16),
-    render_image: Image,
+    pub render_size: (u16, u16),
+    pub render_image: Image,
     render_texture: Texture2D,
-    z_buffer: Vec<f64>
+    pub z_buffer: Vec<f64>
 }
 
 impl FirstPersonViewer {
@@ -33,7 +33,6 @@ impl FirstPersonViewer {
     pub fn draw_view(
         &mut self,
         world: &Level,
-        screen_size: (f32, f32),
         pos: DVec2,
         dir: DVec2,
         plane_scale: f64) {
@@ -121,6 +120,10 @@ impl FirstPersonViewer {
             }*/
         }
 
+
+    }
+
+    pub fn render(&self, screen_size: (f32, f32),) {
         // Update texture
         let render_texture_params = DrawTextureParams {
             dest_size: Some(Vec2::from(screen_size)),
