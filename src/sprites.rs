@@ -35,7 +35,7 @@ impl Sprites {
     pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType) {
         self.sp_positions.push(pos);
         self.sp_type.push(sprite_type);
-        self.sp_size.push(DVec3::from((0.1, 0.1, 0.0))); // x scale, y scale, x offset
+        self.sp_size.push(DVec3::from((0.1, 0.1, -0.5))); // x scale, y scale, x offset
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
     pub fn draw_sprites(
@@ -80,27 +80,33 @@ impl Sprites {
             let sprite_width = ((sprite_scale.x*w) / transform.y).abs();
             // Calculate the left and right pixel to fill in
             let offset_x = (w/2.0)*(1.0 + sprite_scale.z);
-            let draw_start_x = 0.0f64.max((-1.0*sprite_width/2.0) + offset_x) as usize;
+            let draw_start_x_fp = -1.0*sprite_width/2.0 + offset_x;
+            let draw_start_x = 0.0f64.max(draw_start_x_fp) as usize;
             let draw_end_x = (rw - 1).min((sprite_width / 2.0 + offset_x) as usize);
+            // Calculate x tex coord start
+            let tex_delta_x = 1.0/sprite_width as f32;
+            let tex_start_x = if draw_start_x_fp < 0.0 {draw_start_x_fp.abs() as f32 * tex_delta_x} else {0.0f32};
 
             // Calculate height of sprite
             let sprite_height = sprite_scale.y*(h / transform.y).abs();
-            let draw_start_y = 0.0f64.max((-1.0*sprite_height/2.0) + sprite_screen_y) as usize;
+            let draw_start_y_fp =(-1.0*sprite_height/2.0) + sprite_screen_y;
+            let draw_start_y = 0.0f64.max(draw_start_y_fp) as usize;
             let draw_end_y = (rh - 1).min((sprite_height / 2.0 + sprite_screen_y) as usize);
-            //let yc = (fpv.render_size.1 as usize - 1).min(0.0f64.max(sprite_screen_y) as usize);
+            // Calculate y tex coord start
+            let tex_delta_y = 1.0/sprite_height as f32;
+            let tex_start_y = if draw_start_y_fp < 0.0 {draw_start_y_fp.abs() as f32 * tex_delta_y} else {0.0f32};
 
             let rd = fpv.render_image.get_image_data_mut();
 
             for y in draw_start_y..=draw_end_y {
                 if transform.y < fpv.z_buffer[y] {
                     for x in draw_start_x..=draw_end_x {
-                        let c = (transform.y / fpv.z_buffer[y]) as f32;
-                        rd[y*rw + x] = Color::new(c, 1.0, 1.0, 1.0).into();
+                        let xc = tex_start_x + ((x-draw_start_x) as f32) * tex_delta_x;
+                        let yc = tex_start_y + ((y-draw_start_y) as f32) * tex_delta_y ;
+                        rd[y*rw + x] = Color::new(xc, yc, 1.0, 1.0).into();
                     }
                 }
             }
-            //println!("(draw_start_y, draw_end_y) {:?}, sprite_screen_y {}, sprite_width {}, transform.y {}, draw_start_x {}, draw_end_x {}",
-            //         (draw_start_y, draw_end_y), sprite_screen_y, sprite_width, transform.y, draw_start_x, draw_end_x);
         }
     }
 }
