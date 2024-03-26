@@ -10,11 +10,12 @@ mod sprites;
 mod image;
 mod mob;
 
+use std::fmt::Pointer;
 use std::path::{Path, PathBuf};
-use macroquad::miniquad::window;
+use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
 use crate::image::ImageLoader;
-use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2};
+use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
 use crate::mob::{MagicColor, Mobs, MobType};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
@@ -317,8 +318,33 @@ async fn main() {
                     }
                 }
 
+                // Animate mobs
+                let last_frame_time = get_frame_time() as f64; // Check if game only calls once per frame
+                for m in mobs.mob_list.iter_mut() {
+                    match m.mob_type {
+                        MobType::Monster(_) => {}
+                        MobType::Bullet => {
+                            let last_state = m.moving;
+                            debug_assert!(last_state.is_some());
+                            match &last_state {
+                                None => {
+                                    m.is_alive = false;
+                                }
+                                Some((start,end,lerp)) => {
+                                    let total_move_distance = end.distance(*start);
+                                    let move_this_frame = m.move_speed * last_frame_time;
+                                    let new_lerp =
+                                        (lerp + (move_this_frame/total_move_distance))
+                                            .clamp(0.0, 1.0);
+                                    m.moving = Some((*start, *end, new_lerp));
+                                    m.pos = apply_boundary_conditions_f64(start.lerp(*end, new_lerp), world.grid.get_size());
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Draw frame
-                //clear_background(BLACK);
                 let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
                 first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale);
                 sprite_manager.draw_sprites(

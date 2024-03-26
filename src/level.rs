@@ -104,7 +104,7 @@ pub struct LevelEditor {
 pub(crate) fn apply_boundary_conditions_i32(pos: IVec2, world_size: (usize, usize)) -> IVec2 {
     let ws = IVec2::from((world_size.0 as i32, world_size.1 as i32));
     let nx = if pos.x < 0 {
-        ws.x + pos.x
+        ws.x - (pos.x.abs() % ws.x)
     } else {
         pos.x % ws.x
     };
@@ -121,9 +121,12 @@ pub(crate) fn apply_boundary_conditions_i32(pos: IVec2, world_size: (usize, usiz
 pub(crate) fn apply_boundary_conditions_f64(pos: DVec2, world_size: (usize, usize)) -> DVec2 {
     let ws = DVec2::from((world_size.0 as f64, world_size.1 as f64));
     let nx = if pos.x < 0.0 {
-        ws.x + pos.x
+        let x_abs = pos.x.abs();
+        let nr = (x_abs/ws.x).floor();
+        ws.x - (pos.x.abs() - (ws.x*nr))
     } else if pos.x >= ws.x{
-        pos.x - ws.x
+        let nr = (pos.x/ws.x).floor();
+        pos.x - (ws.x*nr)
     } else {
         pos.x
     };

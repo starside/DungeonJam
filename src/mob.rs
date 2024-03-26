@@ -9,7 +9,6 @@ pub enum MagicColor {
 }
 
 pub struct MonsterState{
-    is_alive: AliveDead,
     last_move_time: f64, // time since last move completed
     last_attack_time: f64,
     last_color_change_time: f64,
@@ -20,6 +19,7 @@ pub enum MobType {
     Bullet
 }
 pub struct Mob {
+    pub is_alive: AliveDead,
     pub moving: Option<(DVec2, DVec2, f64)>, // start coord, end coord, lerp
     pub move_speed: f64,
     pub pos: DVec2,
@@ -43,13 +43,13 @@ impl Mobs {
         let real_pos = pos.as_dvec2() + offset;
 
         let mob = Mob {
+            is_alive: true,
             moving: None,
             move_speed: float_speed,
             pos: real_pos,
             color: White,
             mob_type: MobType::Monster(
                 MonsterState {
-                    is_alive: true,
                     last_move_time: 0.0,
                     last_attack_time: 0.0,
                     last_color_change_time: 0.0
@@ -67,6 +67,7 @@ impl Mobs {
         let end_pos = float_speed*max_lifetime*dir.normalize() + pos;
 
         let mob = Mob {
+            is_alive: true,
             moving: Some((pos, end_pos, 0.0)),
             move_speed: float_speed,
             pos,
