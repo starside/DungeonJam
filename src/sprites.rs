@@ -49,6 +49,13 @@ impl Sprites {
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
 
+    pub fn clear_sprites(&mut self) {
+        self.sp_positions.clear();
+        self.sp_type.clear();
+        self.sp_size.clear();
+        self.sp_draw_order.clear();
+    }
+
     pub fn draw_sprites(
         &mut self,
         cutoff_distance: f64,

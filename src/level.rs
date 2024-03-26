@@ -143,12 +143,16 @@ pub fn ucoords_to_icoords(x: (usize, usize)) -> (i32, i32) {
     (x.0 as i32, x.1 as i32)
 }
 
-pub fn ucoords_to_dvec2(pos: (i32, i32)) -> DVec2 {
+pub fn icoords_to_dvec2(pos: (i32, i32)) -> DVec2 {
+    DVec2::from((pos.0 as f64, pos.1 as f64))
+}
+
+pub fn ucoords_to_dvec2(pos: (usize, usize)) -> DVec2 {
     DVec2::from((pos.0 as f64, pos.1 as f64))
 }
 
 pub fn world_space_centered_coord(pos: (i32, i32), x_off: f64, y_off: f64) -> DVec2 {
-    ucoords_to_dvec2(pos) + 0.5 + DVec2::from((x_off, y_off))
+    icoords_to_dvec2(pos) + 0.5 + DVec2::from((x_off, y_off))
 }
 
 impl LevelEditor {

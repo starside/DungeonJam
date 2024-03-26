@@ -8,14 +8,17 @@ mod player_movement;
 mod physics;
 mod sprites;
 mod image;
+mod mob;
 
 use std::path::{Path, PathBuf};
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
 use crate::image::ImageLoader;
-use crate::level::{Level, ucoords_to_icoords, world_space_centered_coord};
+use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2};
+use crate::mob::{MagicColor, Mobs, MobType};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
+use crate::sprites::SpriteType;
 
 enum GameState {
     Debug,
@@ -39,6 +42,13 @@ struct PlayerState {
     lerp: f64
 }
 
+fn calculate_view_dir(rotation_angle: f64, player_facing: f64) -> DVec2{
+    let rot2d = DVec2::from((rotation_angle.cos(), player_facing*rotation_angle.sin()));
+    let dir = player_facing * DVec2::from((-1.0, 0.0));
+    rot2d.rotate(dir)
+}
+
+
 impl PlayerState {
     fn player_look(&mut self) {
         let look_up_max: f64 = 0.9;
@@ -56,6 +66,7 @@ impl PlayerState {
         }
     }
     fn do_idle_state(&mut self,
+                     mobs: &mut Mobs,
                      player_facing: &mut f64,
                      player_pos: (usize, usize),
                      level: &Level) -> PlayerMode {
@@ -115,6 +126,14 @@ impl PlayerState {
                         }else {
                             Idle
                         }
+                    }
+                    KeyCode::Space => { // attack
+                        let shoot_dir = calculate_view_dir(self.look_rotation, *player_facing).normalize();
+                        let ppos = ucoords_to_dvec2(player_pos) + DVec2::from((0.5, 0.5)); // center in square
+                        let shoot_pos =
+                            ppos + 0.25*calculate_view_dir(self.look_rotation, *player_facing).normalize();
+                        mobs.new_bullet(shoot_pos, shoot_dir, MagicColor::White);
+                        Idle
                     }
                     _ => {Idle}
                 }
@@ -198,12 +217,17 @@ impl PlayerState {
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
+
+    // Load images
     let mut sprite_images = ImageLoader::new();
     let sprite_image_files = vec![
         "sprites/Bones_shadow1_1.png".to_string()
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
+
+    // Create mob manager
+    let mut mobs = Mobs::new();
 
     let max_ray_distance: f64 = 16.0;
     let mut world = Level::new("level.json", 16, 64);
@@ -255,7 +279,7 @@ async fn main() {
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut player_facing, player_pos, &world)
+                        player_state.do_idle_state(&mut mobs, &mut player_facing, player_pos, &world)
                     }
                     Moving => {
                         player_state.do_moving_state(&mut player_pos, &mut pos, &mut world)
@@ -280,10 +304,20 @@ async fn main() {
                     }
                 }
 
+                // Update sprites.  Not really efficient but whatever
+                sprite_manager.clear_sprites();
+                for m in mobs.mob_list.iter() {
+                    match m.mob_type {
+                        MobType::Monster(_) => {}
+                        MobType::Bullet => {
+                            sprite_manager.add_sprite(m.pos, 0 as SpriteType)
+                        }
+                    }
+                }
+
                 // Draw frame
                 //clear_background(BLACK);
-                let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
-                let view_dir = rot2d.rotate(dir);
+                let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
                 first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale);
                 sprite_manager.draw_sprites(
                     max_ray_distance,
