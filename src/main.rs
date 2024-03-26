@@ -221,7 +221,8 @@ async fn main() {
     // Load images
     let mut sprite_images = ImageLoader::new();
     let sprite_image_files = vec![
-        "sprites/Bones_shadow1_1.png".to_string()
+        "sprites/Bones_shadow1_1.png".to_string(),
+        "sprites/Pustules_shadow2_2.png".to_string()
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
@@ -310,7 +311,7 @@ async fn main() {
                     match m.mob_type {
                         MobType::Monster(_) => {}
                         MobType::Bullet => {
-                            sprite_manager.add_sprite(m.pos, 0 as SpriteType)
+                            sprite_manager.add_sprite(m.pos, 1 as SpriteType)
                         }
                     }
                 }

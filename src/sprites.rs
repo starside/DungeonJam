@@ -97,7 +97,7 @@ impl Sprites {
         // TODO: Frustum culling
         for (sprite, sprite_scale, sprite_image) in self.sp_draw_order.iter().map(|x| {
                 let (_, i) = *x;
-                (&self.sp_positions[i], self.sp_size[i], sprite_images.get_image(0))
+                (&self.sp_positions[i], self.sp_size[i], sprite_images.get_image(self.sp_type[i]))
         }) {
             let sprite_rel_pos = find_distance_across_boundary(
                 *sprite,
