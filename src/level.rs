@@ -2,7 +2,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
 use macroquad::color::{BLACK, colors, GREEN};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
-use macroquad::math::{IVec2, Vec2};
+use macroquad::math::{DVec3, IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
 use macroquad::shapes::draw_circle;
 use serde::{Deserialize, Serialize};
@@ -214,7 +214,8 @@ impl LevelEditor {
                         world.player_start = t;
                     }
                     KeyCode::E => {
-                        sprite_manager.add_sprite(mouse_world_pos, 0 as image::ImageId);
+                        sprite_manager.add_sprite(mouse_world_pos, 1 as image::ImageId,
+                        DVec3::from((1.0, 1.0, 0.0)));
                     }
                     KeyCode::Escape => {
                         new_game_state = Some(GameState::FirstPerson);

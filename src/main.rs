@@ -311,7 +311,8 @@ async fn main() {
                     match m.mob_type {
                         MobType::Monster(_) => {}
                         MobType::Bullet => {
-                            sprite_manager.add_sprite(m.pos, 1 as SpriteType)
+                            let bullet_scaling = DVec3::from((0.1, 0.1, 0.0));
+                            sprite_manager.add_sprite(m.pos, 1 as SpriteType, bullet_scaling)
                         }
                     }
                 }

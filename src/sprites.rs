@@ -42,10 +42,10 @@ impl Sprites {
         self.sp_type.swap_remove(sprite_idx);
     }
 
-    pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType) {
+    pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType, scaling: DVec3) {
         self.sp_positions.push(pos);
         self.sp_type.push(sprite_type);
-        self.sp_size.push(DVec3::from((1.0, 1.0, 0.0))); // x scale, y scale, x offset
+        self.sp_size.push(scaling); // x scale, y scale, x offset
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
 
