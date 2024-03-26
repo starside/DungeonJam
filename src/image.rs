@@ -1,17 +1,18 @@
 use std::future::Future;
+use std::path::{Path, PathBuf};
 use macroquad::Error;
 use macroquad::prelude::{Image, load_image};
 
-struct GameImage {
+pub struct GameImage {
     image: Image,
-    filename: String
+    filename: PathBuf
 }
 
-struct ImageLoader  {
+pub struct ImageLoader  {
     images: Vec<GameImage>
 }
 
-type ImageId = usize;
+pub type ImageId = usize;
 
 impl ImageLoader {
     pub fn new() -> Self {
@@ -21,17 +22,17 @@ impl ImageLoader {
     }
 
     // Loads an image, returns its image ID
-    pub async fn load_game_image(&mut self, name: &str) -> Option<ImageId> {
-        match  load_image(name).await {
+    pub async fn load_game_image(&mut self, name: &Path) -> Option<ImageId> {
+        match  load_image(name.to_str().unwrap()).await {
             Ok(im) => {
                 self.images.push(GameImage {
                     image: im,
-                    filename: name.to_string()
+                    filename: PathBuf::from(name)
                 });
                 Some(self.images.len() - 1)
             }
             Err(e) => {
-                eprintln!("Failed to load image {}: {}", name, e);
+                eprintln!("Failed to load image {}: {}", name.to_str().unwrap(), e);
                 None
             }
         }
@@ -39,10 +40,15 @@ impl ImageLoader {
 
     pub async fn load_image_list(&mut self, files: &Vec<String>) -> Result<(), String> {
         for f in files {
-            if self.load_game_image(f).await.is_none() {
+            let file = Path::new(f.as_str());
+            if self.load_game_image(file).await.is_none() {
                 return Err(format!("Failed to load image {}", f))
             }
         }
         Ok(())
+    }
+
+    pub fn get_image(&self, id: ImageId) -> &Image {
+        &self.images[id].image
     }
 }

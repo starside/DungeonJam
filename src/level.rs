@@ -6,7 +6,7 @@ use macroquad::math::{IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
 use macroquad::shapes::draw_circle;
 use serde::{Deserialize, Serialize};
-use crate::{GameState, grid_viewer};
+use crate::{GameState, grid_viewer, image};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
 use crate::sprites::{Sprites, SpriteType};
@@ -210,7 +210,7 @@ impl LevelEditor {
                         world.player_start = t;
                     }
                     KeyCode::E => {
-                        sprite_manager.add_sprite(mouse_world_pos, SpriteType::Debug);
+                        sprite_manager.add_sprite(mouse_world_pos, 0 as image::ImageId);
                     }
                     KeyCode::Escape => {
                         new_game_state = Some(GameState::FirstPerson);

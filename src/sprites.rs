@@ -3,11 +3,11 @@ use macroquad::color::{Color, YELLOW};
 use macroquad::math::{DMat2, DVec2, DVec3};
 use macroquad::prelude::mat2;
 use crate::fpv::FirstPersonViewer;
+use crate::image;
+use crate::image::ImageLoader;
 use crate::level::Level;
 
-pub enum SpriteType {
-    Debug
-}
+pub type SpriteType = image::ImageId;
 
 pub struct Sprites {
     pub sp_positions: Vec<DVec2>, // midpoint sprite position
@@ -35,11 +35,12 @@ impl Sprites {
     pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType) {
         self.sp_positions.push(pos);
         self.sp_type.push(sprite_type);
-        self.sp_size.push(DVec3::from((0.1, 0.1, 0.0))); // x scale, y scale, x offset
+        self.sp_size.push(DVec3::from((1.0, 1.0, 0.0))); // x scale, y scale, x offset
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
     pub fn draw_sprites(
         &mut self,
+        sprite_images: &ImageLoader,
         fpv: &mut FirstPersonViewer,
         pos: DVec2,
         dir: DVec2,
@@ -68,9 +69,9 @@ impl Sprites {
         });
 
         // TODO: Frustum culling
-        for (sprite, sprite_scale) in self.sp_draw_order.iter().map(|x| {
+        for (sprite, sprite_scale, sprite_image) in self.sp_draw_order.iter().map(|x| {
                 let (_, i) = *x;
-                (&self.sp_positions[i], self.sp_size[i])
+                (&self.sp_positions[i], self.sp_size[i], sprite_images.get_image(0))
         }) {
             let sprite_rel_pos = *sprite - pos;
             let transform = camera_inverse.mul_vec2(sprite_rel_pos);
@@ -96,6 +97,9 @@ impl Sprites {
             let tex_delta_y = 1.0/sprite_height as f32;
             let tex_start_y = if draw_start_y_fp < 0.0 {draw_start_y_fp.abs() as f32 * tex_delta_y} else {0.0f32};
 
+            let sprite_width_pixels = (sprite_image.width-1) as f32;
+            let sprite_height_pixels = (sprite_image.height-1) as f32;
+
             let rd = fpv.render_image.get_image_data_mut();
 
             let mut tex_y = tex_start_y;
@@ -103,7 +107,20 @@ impl Sprites {
                 let mut tex_x = tex_start_x;
                 if transform.y < fpv.z_buffer[y] {
                     for x in draw_start_x..=draw_end_x {
-                        rd[y*rw + x] = Color::new(1.0f32.min(tex_x), 1.0f32.min(tex_y), 1.0, 1.0).into();
+                        let c = sprite_image.get_pixel(
+                            (tex_x * sprite_width_pixels) as u32,
+                            (tex_y * sprite_height_pixels) as u32);
+                        let p = Color::from_rgba(rd[y * rw + x][0], rd[y * rw + x][1], rd[y * rw + x][2], rd[y * rw + x][3]);
+
+                        let a = c.a; // alpha
+                        let b = 1.0 - a; // 1 - alpha
+
+                        // alpha blend
+                        rd[y * rw + x] = Color::new(
+                            a*c.r + b*p.r,
+                            a*c.g + b*p.g,
+                            a*c.b + b*p.b,
+                            1.0).into();
                         tex_x += tex_delta_x;
                     }
                 }

@@ -9,8 +9,10 @@ mod physics;
 mod sprites;
 mod image;
 
+use std::path::{Path, PathBuf};
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
+use crate::image::ImageLoader;
 use crate::level::{Level, ucoords_to_icoords, world_space_centered_coord};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
@@ -196,6 +198,14 @@ impl PlayerState {
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
+    let mut sprite_images = ImageLoader::new();
+    let sprite_image_files = vec![
+        "sprites/Bones_shadow1_1.png".to_string()
+    ];
+    sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
+
+    let mut sprite_manager = sprites::Sprites::new();
+
     let mut world = Level::new("level.json", 16, 64);
 
     // Camera plane scaling factor
@@ -205,8 +215,6 @@ async fn main() {
 
     // Set up low resolution renderer
     let mut first_person_view = fpv::FirstPersonViewer::new(640, 480);
-
-    let mut sprite_manager = sprites::Sprites::new();
 
     // Translate player starting position to world vector coords.
     // These are the gameplay variables, the others should not be modified directly
@@ -276,7 +284,7 @@ async fn main() {
                 let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
                 let view_dir = rot2d.rotate(dir);
                 first_person_view.draw_view(&world, pos, view_dir, plane_scale);
-                sprite_manager.draw_sprites(&mut first_person_view, pos, view_dir, player_facing*plane_scale);
+                sprite_manager.draw_sprites(&sprite_images, &mut first_person_view, pos, view_dir, player_facing*plane_scale);
                 first_person_view.render(screen_size);
 
                 // Draw FPS meter
