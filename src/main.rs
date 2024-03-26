@@ -203,10 +203,11 @@ async fn main() {
         "sprites/Bones_shadow1_1.png".to_string()
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
-
     let mut sprite_manager = sprites::Sprites::new();
 
+    let max_ray_distance: f64 = 16.0;
     let mut world = Level::new("level.json", 16, 64);
+    let (world_width, world_height) = world.grid.get_size();
 
     // Camera plane scaling factor
     let plane_scale = -1.05;
@@ -283,8 +284,15 @@ async fn main() {
                 //clear_background(BLACK);
                 let rot2d = DVec2::from((player_state.look_rotation.cos(), player_facing*player_state.look_rotation.sin()));
                 let view_dir = rot2d.rotate(dir);
-                first_person_view.draw_view(&world, pos, view_dir, plane_scale);
-                sprite_manager.draw_sprites(&sprite_images, &mut first_person_view, pos, view_dir, player_facing*plane_scale);
+                first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale);
+                sprite_manager.draw_sprites(
+                    max_ray_distance,
+                    &sprite_images,
+                    &mut first_person_view,
+                    pos,
+                    view_dir,
+                    player_facing*plane_scale,
+                    world_width as f64);
                 first_person_view.render(screen_size);
 
                 // Draw FPS meter

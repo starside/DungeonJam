@@ -1,7 +1,7 @@
 {
   "player_start": [
-    6,
-    1
+    2,
+    49
   ],
   "grid": {
     "width": 16,
@@ -2417,7 +2417,52 @@
         "cell_type": "Wall"
       },
       {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
+        "cell_type": "Wall"
+      },
+      {
         "cell_type": "Empty"
+      },
+      {
+        "cell_type": "Wall"
       },
       {
         "cell_type": "Empty"
@@ -2442,51 +2487,6 @@
       },
       {
         "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Wall"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
-      },
-      {
-        "cell_type": "Empty"
       },
       {
         "cell_type": "Empty"

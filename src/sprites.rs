@@ -3,7 +3,7 @@ use macroquad::color::{Color, YELLOW};
 use macroquad::math::{DMat2, DVec2, DVec3};
 use macroquad::prelude::mat2;
 use crate::fpv::FirstPersonViewer;
-use crate::image;
+use crate::{fpv, image};
 use crate::image::ImageLoader;
 use crate::level::Level;
 
@@ -38,13 +38,25 @@ impl Sprites {
         self.sp_size.push(DVec3::from((1.0, 1.0, 0.0))); // x scale, y scale, x offset
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
+
+    fn find_distance_across_boundary(obj: DVec2, pos: DVec2, facing: f64, world_width: f64) -> DVec2{
+        let mut diff = obj - pos;
+        if facing < 0.0 &&  diff.x > 0.0{ // facing left
+            diff.x = -pos.x + obj.x - world_width;
+        } else if facing > 0.0 && diff.x < 0.0 {
+            diff.x = world_width + obj.x - pos.x;
+        }
+        diff
+    }
     pub fn draw_sprites(
         &mut self,
+        cutoff_distance: f64,
         sprite_images: &ImageLoader,
         fpv: &mut FirstPersonViewer,
         pos: DVec2,
         dir: DVec2,
-        plane_scale: f64)
+        plane_scale: f64,
+        world_width: f64)
     {
         let (rw, rh) = (fpv.render_size.0 as usize, fpv.render_size.1 as usize);
         let (w, h) = (fpv.render_size.0 as f64, fpv.render_size.1 as f64);
@@ -53,11 +65,13 @@ impl Sprites {
 
         // Find visible sprites and sort them by distance
         self.sp_draw_order.clear();
+        let cutoff = cutoff_distance * cutoff_distance;
         for (i, sprite) in self.sp_positions.iter().enumerate() {
             let sprite_rel_pos = (*sprite - pos);
             let distance_squared = sprite_rel_pos.dot(sprite_rel_pos);
             let transform = camera_inverse.mul_vec2(sprite_rel_pos);
-            if transform.y >= 0.0 { // back plane culling
+            println!("ransform.y >= 0.0 {},  distance_squared < cutoff {}", transform.y, distance_squared < cutoff);
+            if transform.y >= 0.0 && distance_squared < cutoff { // back plane culling + max draw distance
                 self.sp_draw_order.push((distance_squared, i));
             }
         }
@@ -108,33 +122,20 @@ impl Sprites {
             let mut tex_y = tex_start_y;
             for y in draw_start_y..=draw_end_y {
                 let mut tex_x = tex_start_x;
+                let fog_f32 = fpv::fog_factor(transform.y, cutoff_distance) as f32;
                 if transform.y < fpv.z_buffer[y] {
                     for x in draw_start_x..=draw_end_x {
                         let sprite_x = sprite_width_pixels.min(tex_x) as usize;
                         let sprite_y = sprite_height_pixels.min(tex_y) as usize;
                         let s = sprite_rd[sprite_y * sprite_width_u + sprite_x];
+                        if s[3] > 8 {
+                            rd[y * rw + x] =
+                                [   (s[0] as f32 * fog_f32) as u8,
+                                    (s[1] as f32 * fog_f32) as u8,
+                                    (s[2] as f32 * fog_f32) as u8,
+                                    (s[3] as f32 * fog_f32) as u8];
+                        }
 
-                        let c = Color::from_rgba(
-                            s[0],
-                            s[1],
-                            s[2],
-                            s[3]);
-
-                        let p = Color::from_rgba(
-                            rd[y * rw + x][0],
-                            rd[y * rw + x][1],
-                            rd[y * rw + x][2],
-                            255);
-
-                        let a = c.a; // alpha
-                        let b = 1.0 - a; // 1 - alpha
-
-                        // alpha blend
-                        rd[y * rw + x] = Color::new(
-                            a*c.r + b*p.r,
-                            a*c.g + b*p.g,
-                            a*c.b + b*p.b,
-                            1.0).into();
                         tex_x += tex_delta_x;
                     }
                 }

@@ -6,6 +6,10 @@ use crate::grid2d::GridCellType;
 use crate::level::Level;
 use crate::raycaster::{cast_ray, HitSide};
 
+pub fn fog_factor(distance: f64, max_distance: f64) -> f64 {
+    f64::exp(-(2.0*distance/max_distance).powi(2))
+}
+
 pub struct FirstPersonViewer {
     pub render_size: (u16, u16),
     pub render_image: Image,
@@ -32,6 +36,7 @@ impl FirstPersonViewer {
     }
     pub fn draw_view(
         &mut self,
+        max_ray_distance: f64,
         world: &Level,
         pos: DVec2,
         dir: DVec2,
@@ -54,7 +59,7 @@ impl FirstPersonViewer {
             let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
 
             let (perp_wall_dist, hit_type, hit_side, map_coord)
-                = cast_ray(&world.grid, &pos, &ray_dir);
+                = cast_ray(&world.grid, &pos, &ray_dir, max_ray_distance);
             let w = render_width as i32;
             let line_width = (w as f64 / perp_wall_dist) as i32;
             let draw_start = 0.max((-line_width/2) + (w/2)) as usize;
@@ -78,7 +83,7 @@ impl FirstPersonViewer {
             let dist_wall = perp_wall_dist;
             let dist_player = 0.0f64;
 
-            let fog = f64::exp(-(perp_wall_dist/10.0).powi(2)) as f32;
+            let fog = fog_factor(perp_wall_dist, max_ray_distance) as f32;
             let color =
                 match hit_type {
                     GridCellType::Empty => { BLACK }

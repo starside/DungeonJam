@@ -55,7 +55,7 @@ impl DebugView {
         let ray_dir = world.grid.screen_to_grid_coords((self.debug_line.1 - self.debug_line.0).as_dvec2(), screen_size);
         let ray_start = world.grid.screen_to_grid_coords(self.debug_line.0.as_dvec2(), screen_size);
 
-        let (perp_hit_dist, _, _, _) = cast_ray(&world.grid, &ray_start, &ray_dir);
+        let (perp_hit_dist, _, _, _) = cast_ray( &world.grid, &ray_start, &ray_dir, 256.0);
 
         let first_step = world.grid.grid_to_screen_coords(ray_start + perp_hit_dist*ray_dir, screen_size).as_vec2();
 
