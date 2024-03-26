@@ -110,14 +110,6 @@ impl FirstPersonViewer {
                 let pixel = &mut rd[y * rw + x];
                 *pixel = Color::from_vec(fog * cv).into();
             }
-
-            /*for x in draw_end..render_width as usize {
-                let current_dist = w as f64 / (2.0 * x as f64 - w as f64);
-                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
-                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
-                let v = 1.0-current_floor_pos.y as f32 / 64.0;
-                rd[y * rw + x] = Color::new(v, v, v, 1.0).into();
-            }*/
         }
 
 

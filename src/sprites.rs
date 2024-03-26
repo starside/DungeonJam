@@ -77,6 +77,10 @@ impl Sprites {
             let transform = camera_inverse.mul_vec2(sprite_rel_pos);
             let sprite_screen_y = (h /2.0) * (1.0 + transform.x/ transform.y);
 
+            // Sprite image size
+            let sprite_width_pixels = (sprite_image.width-1) as f32;
+            let sprite_height_pixels = (sprite_image.height-1) as f32;
+
             // Calculate width of the sprite
             let sprite_width = ((sprite_scale.x*w) / transform.y).abs();
             // Calculate the left and right pixel to fill in
@@ -85,7 +89,7 @@ impl Sprites {
             let draw_start_x = 0.0f64.max(draw_start_x_fp) as usize;
             let draw_end_x = (rw - 1).min((sprite_width / 2.0 + offset_x) as usize);
             // Calculate x tex coord start
-            let tex_delta_x = 1.0/sprite_width as f32;
+            let tex_delta_x = 1.0/sprite_width as f32 * sprite_width_pixels;
             let tex_start_x = if draw_start_x_fp < 0.0 {draw_start_x_fp.abs() as f32 * tex_delta_x} else {0.0f32};
 
             // Calculate height of sprite
@@ -94,23 +98,33 @@ impl Sprites {
             let draw_start_y = 0.0f64.max(draw_start_y_fp) as usize;
             let draw_end_y = (rh - 1).min((sprite_height / 2.0 + sprite_screen_y) as usize);
             // Calculate y tex coord start
-            let tex_delta_y = 1.0/sprite_height as f32;
+            let tex_delta_y = 1.0/sprite_height as f32 * sprite_height_pixels;
             let tex_start_y = if draw_start_y_fp < 0.0 {draw_start_y_fp.abs() as f32 * tex_delta_y} else {0.0f32};
 
-            let sprite_width_pixels = (sprite_image.width-1) as f32;
-            let sprite_height_pixels = (sprite_image.height-1) as f32;
-
             let rd = fpv.render_image.get_image_data_mut();
+            let sprite_rd = sprite_image.get_image_data();
 
+            let sprite_width_u = sprite_image.width as usize;
             let mut tex_y = tex_start_y;
             for y in draw_start_y..=draw_end_y {
                 let mut tex_x = tex_start_x;
                 if transform.y < fpv.z_buffer[y] {
                     for x in draw_start_x..=draw_end_x {
-                        let c = sprite_image.get_pixel(
-                            (tex_x * sprite_width_pixels) as u32,
-                            (tex_y * sprite_height_pixels) as u32);
-                        let p = Color::from_rgba(rd[y * rw + x][0], rd[y * rw + x][1], rd[y * rw + x][2], rd[y * rw + x][3]);
+                        let sprite_x = sprite_width_pixels.min(tex_x) as usize;
+                        let sprite_y = sprite_height_pixels.min(tex_y) as usize;
+                        let s = sprite_rd[sprite_y * sprite_width_u + sprite_x];
+
+                        let c = Color::from_rgba(
+                            s[0],
+                            s[1],
+                            s[2],
+                            s[3]);
+
+                        let p = Color::from_rgba(
+                            rd[y * rw + x][0],
+                            rd[y * rw + x][1],
+                            rd[y * rw + x][2],
+                            255);
 
                         let a = c.a; // alpha
                         let b = 1.0 - a; // 1 - alpha
