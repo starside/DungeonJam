@@ -1,7 +1,7 @@
 {
   "player_start": [
-    2,
-    49
+    6,
+    1
   ],
   "grid": {
     "width": 16,
@@ -23,7 +23,7 @@
         "cell_type": "Empty"
       },
       {
-        "cell_type": "Empty"
+        "cell_type": "Wall"
       },
       {
         "cell_type": "Empty"
@@ -71,7 +71,7 @@
         "cell_type": "Empty"
       },
       {
-        "cell_type": "Empty"
+        "cell_type": "Wall"
       },
       {
         "cell_type": "Empty"
@@ -119,7 +119,7 @@
         "cell_type": "Empty"
       },
       {
-        "cell_type": "Empty"
+        "cell_type": "Wall"
       },
       {
         "cell_type": "Wall"

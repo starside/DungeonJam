@@ -16,6 +16,16 @@ pub struct Sprites {
     sp_draw_order: Vec<(f64, usize)> // distance, index
 }
 
+fn find_distance_across_boundary(obj: DVec2, pos: DVec2, facing: f64, world_width: f64) -> DVec2{
+    let mut diff = obj - pos;
+    if facing < 0.0 &&  diff.x > 0.0{ // facing left
+        diff.x = -pos.x + obj.x - world_width;
+    } else if facing > 0.0 && diff.x < 0.0 {
+        diff.x = world_width + obj.x - pos.x;
+    }
+    diff
+}
+
 impl Sprites {
     pub fn new() -> Self {
         Sprites {
@@ -39,15 +49,6 @@ impl Sprites {
         self.sp_draw_order.push((f64::INFINITY, 0));
     }
 
-    fn find_distance_across_boundary(obj: DVec2, pos: DVec2, facing: f64, world_width: f64) -> DVec2{
-        let mut diff = obj - pos;
-        if facing < 0.0 &&  diff.x > 0.0{ // facing left
-            diff.x = -pos.x + obj.x - world_width;
-        } else if facing > 0.0 && diff.x < 0.0 {
-            diff.x = world_width + obj.x - pos.x;
-        }
-        diff
-    }
     pub fn draw_sprites(
         &mut self,
         cutoff_distance: f64,
@@ -67,10 +68,14 @@ impl Sprites {
         self.sp_draw_order.clear();
         let cutoff = cutoff_distance * cutoff_distance;
         for (i, sprite) in self.sp_positions.iter().enumerate() {
-            let sprite_rel_pos = (*sprite - pos);
+            let sprite_rel_pos = find_distance_across_boundary(
+                *sprite,
+                pos,
+                dir.x/(dir.x.abs()),
+                world_width
+            ); //(*sprite - pos);
             let distance_squared = sprite_rel_pos.dot(sprite_rel_pos);
             let transform = camera_inverse.mul_vec2(sprite_rel_pos);
-            println!("ransform.y >= 0.0 {},  distance_squared < cutoff {}", transform.y, distance_squared < cutoff);
             if transform.y >= 0.0 && distance_squared < cutoff { // back plane culling + max draw distance
                 self.sp_draw_order.push((distance_squared, i));
             }
@@ -87,7 +92,12 @@ impl Sprites {
                 let (_, i) = *x;
                 (&self.sp_positions[i], self.sp_size[i], sprite_images.get_image(0))
         }) {
-            let sprite_rel_pos = *sprite - pos;
+            let sprite_rel_pos = find_distance_across_boundary(
+                *sprite,
+                pos,
+                dir.x/(dir.x.abs()),
+                world_width
+            );
             let transform = camera_inverse.mul_vec2(sprite_rel_pos);
             let sprite_screen_y = (h /2.0) * (1.0 + transform.x/ transform.y);
 
@@ -133,7 +143,8 @@ impl Sprites {
                                 [   (s[0] as f32 * fog_f32) as u8,
                                     (s[1] as f32 * fog_f32) as u8,
                                     (s[2] as f32 * fog_f32) as u8,
-                                    (s[3] as f32 * fog_f32) as u8];
+                                    (s[3] as f32 * fog_f32) as u8
+                                ];
                         }
 
                         tex_x += tex_delta_x;
