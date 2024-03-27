@@ -10,7 +10,7 @@ pub enum GridCellType {
     Wall
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct RayGridCell {
     pub cell_type: GridCellType
 }
@@ -22,7 +22,7 @@ pub struct Grid2D<T> {
     cells: Vec<T>
 }
 
-impl<T: Serialize + DeserializeOwned> Grid2D<T>{
+impl<T: Serialize + DeserializeOwned + Default> Grid2D<T>{
     pub fn new(width: usize, height: usize) -> Self {
         Grid2D {
             width,
@@ -89,13 +89,11 @@ impl<T: Serialize + DeserializeOwned> Grid2D<T>{
             y: pos.y * cell_h
         }
     }
-}
 
-impl Grid2D<RayGridCell>{
     pub fn zero(&mut self) {
         self.cells = Vec::new();
         for _ in 0..self.width * self.height {
-            self.cells.push(RayGridCell { cell_type: GridCellType::Empty });
+            self.cells.push(T::default());
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
-use macroquad::color::{BLACK, colors, GREEN};
+use macroquad::color::{BLACK, colors, GREEN, RED};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
 use macroquad::math::{DVec3, IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{GameState, grid_viewer, image};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
-use crate::mob::Mobs;
+use crate::mob::{MobId, Mobs};
 use crate::sprites::{Sprites, SpriteType};
 
 #[derive(Serialize, Deserialize)]
@@ -171,6 +171,7 @@ impl LevelEditor {
     pub fn draw_editor(&mut self,
                    world: &mut Level,
                    mob_manager: &mut Mobs,
+                   mob_grid: &mut Grid2D<MobId>,
                    sprite_manager: &mut Sprites,
                    screen_size: (f32, f32), pos: DVec2, dir: DVec2) -> (Option<(DVec2, DVec2)>, Option<GameState>) {
         let mut new_game_state: Option<GameState> = None;
@@ -200,7 +201,11 @@ impl LevelEditor {
         // Draw monster positions
         for s in mob_manager.mob_list.iter() {
             let p = world.grid.grid_to_screen_coords(s.pos, screen_size).as_vec2();
-            draw_circle(p.x, p.y, 3.0, GREEN);
+            let mob_color = match s.is_alive {
+                true => {GREEN}
+                false => {RED}
+            };
+            draw_circle(p.x, p.y, 3.0, mob_color);
         }
 
         if is_mouse_button_pressed(MouseButton::Middle){
@@ -222,8 +227,17 @@ impl LevelEditor {
                     }
                     KeyCode::E => {
                         let new_monster_pos = mouse_world_pos.as_ivec2();
-                        world.mob_list.push(<(i32, i32)>::from(new_monster_pos));
-                        mob_manager.new_monster(new_monster_pos);
+                        if mob_manager.new_monster(new_monster_pos, mob_grid) == true {
+                            world.mob_list.push(<(i32, i32)>::from(new_monster_pos));
+                        }
+                    }
+                    KeyCode::K => {
+                        let kill_monster_pos = mouse_world_pos.as_ivec2();
+                        for mob in mob_manager.mob_list.iter_mut() {
+                            if mob.pos.as_ivec2() == kill_monster_pos {
+                                mob.is_alive = false;
+                            }
+                        }
                     }
                     KeyCode::Escape => {
                         new_game_state = Some(GameState::FirstPerson);

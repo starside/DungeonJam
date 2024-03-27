@@ -1,6 +1,8 @@
 use macroquad::math::{DVec2, IVec2};
+use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::mob::MagicColor::White;
 
+pub type MobId = bool;
 type AliveDead = bool;
 
 pub enum MagicColor {
@@ -38,11 +40,12 @@ impl Mobs {
         }
     }
 
-    pub fn delete_dead_mobs(&mut self) {
+    pub fn delete_dead_mobs(&mut self, mob_grid: &mut Grid2D<MobId>) {
         let mut dead_mobs: Vec<usize> = Vec::with_capacity(self.mob_list.len());
         for (i, mob) in self.mob_list.iter().enumerate() {
             if !mob.is_alive {
                 dead_mobs.push(i);
+                mob_grid.set_cell_at_grid_coords_int(mob.pos.as_ivec2(), false);
             }
         }
         dead_mobs.sort();
@@ -50,28 +53,34 @@ impl Mobs {
             self.mob_list.swap_remove(*i);
         }
     }
-    pub fn new_monster(&mut self, pos: IVec2) -> usize {
-        let float_speed = 1.0; // In world coordinates per second
-        let offset = DVec2::from((0.5, 0.5));
-        let real_pos = pos.as_dvec2() + offset;
+    pub fn new_monster(&mut self, pos: IVec2, mob_grid: &mut Grid2D<MobId>) -> MobId {
+        if let Some(m) = mob_grid.get_cell_at_grid_coords_int(pos) {
+            if *m == false { // No mob here
+                let float_speed = 1.0; // In world coordinates per second
+                let offset = DVec2::from((0.5, 0.5));
+                let real_pos = pos.as_dvec2() + offset;
 
-        let mob = Mob {
-            is_alive: true,
-            moving: None,
-            move_speed: float_speed,
-            pos: real_pos,
-            color: White,
-            mob_type: MobType::Monster(
-                MonsterState {
-                    last_move_time: 0.0,
-                    last_attack_time: 0.0,
-                    last_color_change_time: 0.0
-                }
-            )
-        };
+                let mob = Mob {
+                    is_alive: true,
+                    moving: None,
+                    move_speed: float_speed,
+                    pos: real_pos,
+                    color: White,
+                    mob_type: MobType::Monster(
+                        MonsterState {
+                            last_move_time: 0.0,
+                            last_attack_time: 0.0,
+                            last_color_change_time: 0.0
+                        }
+                    )
+                };
 
-        self.mob_list.push(mob);
-        self.mob_list.len() - 1
+                mob_grid.set_cell_at_grid_coords_int(pos, true);
+                self.mob_list.push(mob);
+                return true;
+            }
+        }
+        false
     }
 
     pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, color: MagicColor) -> usize {

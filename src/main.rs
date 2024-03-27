@@ -14,10 +14,10 @@ use std::fmt::Pointer;
 use std::path::{Path, PathBuf};
 use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
-use crate::grid2d::GridCellType;
+use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor, Mob, Mobs, MobType};
+use crate::mob::{MagicColor, Mob, MobId, Mobs, MobType};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 use crate::sprites::SpriteType;
@@ -274,9 +274,13 @@ async fn main() {
     let (world_width, world_height) = (16usize, 64usize);
     let mut world = Level::new("level.json", world_width, world_height);
 
+    // Mob grid
+    let mut mob_grid:Grid2D<MobId> = Grid2D::new(world_width, world_height);
+    mob_grid.zero();
+
     // Populate world with mobs
     for m in &world.mob_list {
-        mobs.new_monster(IVec2::from(*m));
+        mobs.new_monster(IVec2::from(*m), &mut mob_grid);
     }
 
     // Camera plane scaling factor
@@ -351,7 +355,7 @@ async fn main() {
                 }
 
                 // Delete mobs marked as dead
-                mobs.delete_dead_mobs();
+                mobs.delete_dead_mobs(&mut mob_grid);
 
                 // Update sprites.  Not really efficient but whatever
                 sprite_manager.clear_sprites();
@@ -399,7 +403,7 @@ async fn main() {
 
             GameState::LevelEditor => {
                 let (new_position, new_state) = level_editor.draw_editor(
-                    &mut world, &mut mobs, &mut sprite_manager, screen_size, pos, dir);
+                    &mut world, &mut mobs, &mut mob_grid, &mut sprite_manager, screen_size, pos, dir);
                 if let Some(x) = new_position {
                     //todo!()
                     //(pos, dir) = x;
