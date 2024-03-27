@@ -146,7 +146,8 @@ impl PlayerState {
                         let shoot_dir = calculate_view_dir(self.look_rotation, *player_facing).normalize();
                         let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
                         let shoot_pos =
-                            ppos + 0.25*calculate_view_dir(self.look_rotation, *player_facing).normalize();
+                            ppos + 0.25*shoot_dir +
+                            ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * shoot_dir); // start out of player room
                         mobs.new_bullet(shoot_pos, shoot_dir, MagicColor::White);
                         Idle
                     }
@@ -237,16 +238,16 @@ impl PlayerState {
     }
 }
 
-fn move_bullets(m: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: &Grid2D<MobId>) {
-    let last_state = m.moving;
+fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: &Grid2D<MobId>) {
+    let last_state = bullet.moving;
     debug_assert!(last_state.is_some());
     match &last_state {
         None => {
-            m.is_alive = false;
+            bullet.is_alive = false;
         }
         Some((start,end,lerp)) => {
             let total_move_distance = end.distance(*start);
-            let move_this_frame = m.move_speed * last_frame_time;
+            let move_this_frame = bullet.move_speed * last_frame_time;
             let new_lerp =
                 (lerp + (move_this_frame/total_move_distance))
                     .clamp(0.0, 1.0);
@@ -263,18 +264,19 @@ fn move_bullets(m: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: 
                     m.is_alive = false;
                 }
                 MobId::Player => {
-                    println!("hit player {}", new_pos)
+                    println!("hit player {}", new_pos);
+                    bullet.is_alive = false;
                 }
             }
 
             // Check for wall hit or end of movement
             let hit_wall = player_movement::is_wall(new_pos.as_ivec2(), &world);
             if new_lerp >= 1.0 || hit_wall {
-                m.is_alive = false;
-                m.moving = None;
+                bullet.is_alive = false;
+                bullet.moving = None;
             } else {
-                m.moving = Some((*start, *end, new_lerp));
-                m.pos = new_pos;
+                bullet.moving = Some((*start, *end, new_lerp));
+                bullet.pos = new_pos;
             }
         }
     }

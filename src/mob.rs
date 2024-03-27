@@ -120,7 +120,8 @@ impl Mobs {
     pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, color: MagicColor) -> usize {
         let float_speed = 4.0; // In world coordinates per second
         let max_lifetime = 6.0;
-        let end_pos = float_speed*max_lifetime*dir.normalize() + pos;
+        let dir_vec = dir.normalize();
+        let end_pos = float_speed*max_lifetime*dir_vec + pos;
 
         let mob = MobData {
             is_alive: true,
