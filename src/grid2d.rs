@@ -2,6 +2,7 @@ use macroquad::math::{DVec2, IVec2};
 use macroquad::prelude::Vec2;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use crate::mob::MobId;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GridCellType {

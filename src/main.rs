@@ -19,7 +19,7 @@ use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
 use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType};
-use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
+use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 use crate::sprites::SpriteType;
 
@@ -71,9 +71,9 @@ impl PlayerState {
     fn do_idle_state(&mut self,
                      mobs: &mut Mobs,
                      player_facing: &mut f64,
-                     player_pos: (usize, usize),
+                     player_pos: &PlayerPosition,
                      level: &Level) -> PlayerMode {
-        let player_pos_ivec = IVec2::from(ucoords_to_icoords(player_pos));
+        let player_pos_ivec = player_pos.get_pos();
 
         self.new_player_pos = None;
 
@@ -142,7 +142,7 @@ impl PlayerState {
                     }
                     KeyCode::Space => { // attack
                         let shoot_dir = calculate_view_dir(self.look_rotation, *player_facing).normalize();
-                        let ppos = ucoords_to_dvec2(player_pos) + DVec2::from((0.5, 0.5)); // center in square
+                        let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
                         let shoot_pos =
                             ppos + 0.25*calculate_view_dir(self.look_rotation, *player_facing).normalize();
                         mobs.new_bullet(shoot_pos, shoot_dir, MagicColor::White);
@@ -161,13 +161,14 @@ impl PlayerState {
     }
 
     fn do_moving_state(&mut self,
-                       player_pos: &mut (usize, usize),
+                       player_pos: &mut PlayerPosition,
                        player_world_coord: &mut DVec2,
+                       mob_grid: &mut Grid2D<MobId>,
                        level: &Level) -> PlayerMode {
         match self.new_player_pos {
             None => {Idle}
             Some(x) => {
-                let p = ucoords_to_icoords(*player_pos);
+                let p = player_pos.get_pos_ituple();
                 let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
                 let final_pos = world_space_centered_coord(x, 0.0, 0.0);
                 let v = final_pos - begin_pos;
@@ -177,7 +178,10 @@ impl PlayerState {
                 *player_world_coord = DVec2::from(level::apply_boundary_conditions_f64(upc, level.grid.get_size()));
                 if self.lerp == 1.0 {
                     let nc = level::apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
-                    *player_pos = (nc.x as usize, nc.y as usize);
+                    let res = player_pos.set_pos(nc, mob_grid);
+                    if res.is_err() {
+                        eprintln!("Moved player to occupied mob position");
+                    }
                     self.new_player_pos = None;
                     Idle
                 } else {
@@ -188,10 +192,11 @@ impl PlayerState {
     }
 
     fn do_falling_state(&mut self,
-                       player_pos: &mut (usize, usize),
+                       player_pos: &mut PlayerPosition,
                        player_world_coord: &mut DVec2,
+                       mob_grid: &mut Grid2D<MobId>,
                        level: &Level) -> PlayerMode {
-        let player_icoords = ucoords_to_icoords(*player_pos);
+        let player_icoords = player_pos.get_pos_ituple();
         let player_pos_ivec = IVec2::from(player_icoords);
 
         self.player_look();
@@ -207,7 +212,7 @@ impl PlayerState {
                 }
             }
             Some(x) => {
-                let p = ucoords_to_icoords(*player_pos);
+                let p = player_pos.get_pos_ituple();
                 let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
                 let final_pos = world_space_centered_coord(x, 0.0, 0.0);
                 let v = final_pos - begin_pos;
@@ -217,7 +222,10 @@ impl PlayerState {
                 *player_world_coord = DVec2::from(level::apply_boundary_conditions_f64(upc, level.grid.get_size()));
                 if self.lerp == 1.0 {
                     let nc = level::apply_boundary_conditions_i32(IVec2::from(x), level.grid.get_size());
-                    *player_pos = (nc.x as usize, nc.y as usize);
+                    let res = player_pos.set_pos(nc, mob_grid);
+                    if res.is_err() {
+                        eprintln!("Player fell through occupied mob position");
+                    }
                     self.new_player_pos = None;
                 }
                 Falling
@@ -309,7 +317,7 @@ async fn main() {
 
     // Translate player starting position to world vector coords.
     // These are the gameplay variables, the others should not be modified directly
-    let mut player_pos = world.player_start;
+    let mut player_pos = player_movement::PlayerPosition::new(world.player_start);
     let mut player_facing: f64 = 1.0;
 
     // Level editor
@@ -323,7 +331,7 @@ async fn main() {
         clear_background(BLACK.into());
 
         // Handle player view
-        let mut pos = world_space_centered_coord((player_pos.0 as i32, player_pos.1 as i32), 0.0, -0.0);
+        let mut pos = world_space_centered_coord(player_pos.get_pos_ituple(), 0.0, -0.0);
         let dir = player_facing * DVec2::from((-1.0, 0.0));
 
         match game_state {
@@ -345,13 +353,13 @@ async fn main() {
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut mobs, &mut player_facing, player_pos, &world)
+                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world)
                     }
                     Moving => {
-                        player_state.do_moving_state(&mut player_pos, &mut pos, &mut world)
+                        player_state.do_moving_state(&mut player_pos, &mut pos,  &mut mob_grid, &mut world)
                     }
                     Falling => {
-                        player_state.do_falling_state(&mut player_pos, &mut pos, &mut world)
+                        player_state.do_falling_state(&mut player_pos, &mut pos, &mut mob_grid, &mut world)
                     }
                 };
 

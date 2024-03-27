@@ -1,6 +1,54 @@
-use macroquad::math::IVec2;
-use crate::grid2d::{GridCellType, RayGridCell};
+use macroquad::math::{DVec2, IVec2};
+use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::level::Level;
+use crate::mob::MobId;
+
+pub struct PlayerPosition {
+    pos: IVec2
+}
+
+impl PlayerPosition {
+    pub fn new(pos: (usize, usize))  -> Self{
+        PlayerPosition {
+            pos: IVec2::from((pos.0 as i32, pos.1 as i32))
+        }
+    }
+    pub fn get_pos(&self) -> IVec2 {
+        self.pos
+    }
+
+    pub fn get_pos_dvec(&self) -> DVec2 {
+        self.pos.as_dvec2()
+    }
+
+    pub fn get_pos_ituple(&self) -> (i32, i32) {
+        (self.pos.x, self.pos.y)
+    }
+
+    pub fn set_pos(&mut self, new_pos: IVec2, mob_grid: &mut Grid2D<MobId>) -> Result<(), MobId> {
+        if self.pos == new_pos {
+            return Ok(()) // Didn't move
+        }
+        let res = match mob_grid.get_cell_at_grid_coords_int(new_pos) {
+            None => { Err(MobId::NoMob) }
+            Some(mob) => {
+                match mob {
+                    MobId::NoMob => {Ok(())}
+                    MobId::Mob(_) => {Err(mob.clone())}
+                    MobId::Player => {panic!("Player is in two places at once")} // Did check at top for move to same location
+                }
+            }
+        };
+
+        if res.is_ok() {
+            mob_grid.set_cell_at_grid_coords_int(self.pos, MobId::NoMob);
+            mob_grid.set_cell_at_grid_coords_int(new_pos, MobId::Player);
+            self.pos = new_pos;
+        }
+
+        res
+    }
+}
 
 pub fn has_floor(pos: IVec2, level: &Level ) -> Option<IVec2> {
     let down_pos = pos + IVec2::from((0, 1));
