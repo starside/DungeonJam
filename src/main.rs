@@ -12,12 +12,13 @@ mod mob;
 
 use std::fmt::Pointer;
 use std::path::{Path, PathBuf};
+use macroquad::math::f64;
 use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
 use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor, Mob, MobId, Mobs, MobType};
+use crate::mob::{MagicColor, Mob, MobData, MobId, Mobs, MobType};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 use crate::sprites::SpriteType;
@@ -227,8 +228,7 @@ impl PlayerState {
     }
 }
 
-fn move_bullets(m: &Mob, last_frame_time: f64, world: &Level) {
-    let m = &mut m.borrow_mut();
+fn move_bullets(m: &mut MobData, last_frame_time: f64, world: &Level) {
     let last_state = m.moving;
     debug_assert!(last_state.is_some());
     match &last_state {
@@ -377,11 +377,11 @@ async fn main() {
                 // Animate mobs
                 let last_frame_time = get_frame_time() as f64; // Check if game only calls once per frame
                 for m in mobs.mob_list.iter() {
-                    let mob_type = &m.borrow().mob_type;
-                    match mob_type {
+                    let mut mob_type = m.borrow_mut();
+                    match mob_type.mob_type {
                         MobType::Monster(_) => {}
                         MobType::Bullet => {
-                            move_bullets(&m, last_frame_time, &world);
+                            move_bullets(&mut mob_type, last_frame_time, &world);
                         }
                     }
                 }

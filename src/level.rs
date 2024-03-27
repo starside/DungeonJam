@@ -237,9 +237,7 @@ impl LevelEditor {
                         if let Some(mob_to_die) = mob_grid.get_cell_at_grid_coords_int(kill_monster_pos) {
                             match mob_to_die {
                                 MobId::Mob(x) => {
-                                    println!("Mob");
                                     let mm = &mut x.borrow_mut();
-                                    println!("mm.is_alive {}", mm.is_alive);
                                     mm.is_alive = false;
                                 }
                                 _ => {}
