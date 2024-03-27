@@ -263,11 +263,10 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
                 MobId::NoMob => {}
                 MobId::Mob(ref mob) => {
                     bullet.is_alive = false;
-                    println!("TODO: Magic color needs to depend on type"); // TODO!!!
-                    collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), MagicColor::White));
+                    collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), bullet.color));
                 }
                 MobId::Player => {
-                    collisions.push(Collision::new_with_bullet(MobId::Player, MagicColor::White));
+                    collisions.push(Collision::new_with_bullet(MobId::Player, bullet.color));
                     bullet.is_alive = false;
                 }
             }
