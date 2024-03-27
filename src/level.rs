@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{GameState, grid_viewer, image};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
+use crate::mob::Mobs;
 use crate::sprites::{Sprites, SpriteType};
 
 #[derive(Serialize, Deserialize)]
@@ -167,6 +168,7 @@ impl LevelEditor {
 
     pub fn draw_editor(&mut self,
                    world: &mut Level,
+                   mob_manager: &mut Mobs,
                    sprite_manager: &mut Sprites,
                    screen_size: (f32, f32), pos: DVec2, dir: DVec2) -> (Option<(DVec2, DVec2)>, Option<GameState>) {
         let mut new_game_state: Option<GameState> = None;
@@ -193,9 +195,9 @@ impl LevelEditor {
         let player_screen_coords = world.grid.grid_to_screen_coords(pos, screen_size).as_vec2();
         draw_circle(player_screen_coords.x, player_screen_coords.y, 3.0, colors::GOLD);
 
-        // Draw sprite positions
-        for s in sprite_manager.sp_positions.iter() {
-            let p = world.grid.grid_to_screen_coords(*s, screen_size).as_vec2();
+        // Draw monster positions
+        for s in mob_manager.mob_list.iter() {
+            let p = world.grid.grid_to_screen_coords(s.pos, screen_size).as_vec2();
             draw_circle(p.x, p.y, 3.0, GREEN);
         }
 
@@ -217,8 +219,7 @@ impl LevelEditor {
                         world.player_start = t;
                     }
                     KeyCode::E => {
-                        sprite_manager.add_sprite(mouse_world_pos, 1 as image::ImageId,
-                        DVec3::from((1.0, 1.0, 0.0)));
+                        mob_manager.new_monster(mouse_world_pos.as_ivec2());
                     }
                     KeyCode::Escape => {
                         new_game_state = Some(GameState::FirstPerson);

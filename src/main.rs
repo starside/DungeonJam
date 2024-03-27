@@ -351,8 +351,11 @@ async fn main() {
                 // Update sprites.  Not really efficient but whatever
                 sprite_manager.clear_sprites();
                 for m in mobs.mob_list.iter() {
-                    match m.mob_type {
-                        MobType::Monster(_) => {}
+                    match &m.mob_type {
+                        MobType::Monster(monster) => {
+                            let monster_scaling = DVec3::from((0.8, 0.8, 0.0));
+                            sprite_manager.add_sprite(m.pos, 0 as SpriteType, monster_scaling)
+                        }
                         MobType::Bullet => {
                             let bullet_scaling = DVec3::from((0.1, 0.1, 0.0));
                             sprite_manager.add_sprite(m.pos, 1 as SpriteType, bullet_scaling)
@@ -390,7 +393,8 @@ async fn main() {
             }
 
             GameState::LevelEditor => {
-                let (new_position, new_state) = level_editor.draw_editor(&mut world, &mut sprite_manager, screen_size, pos, dir);
+                let (new_position, new_state) = level_editor.draw_editor(
+                    &mut world, &mut mobs, &mut sprite_manager, screen_size, pos, dir);
                 if let Some(x) = new_position {
                     //todo!()
                     //(pos, dir) = x;
