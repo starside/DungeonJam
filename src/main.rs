@@ -271,8 +271,13 @@ async fn main() {
     let mut mobs = Mobs::new();
 
     let max_ray_distance: f64 = 16.0;
-    let mut world = Level::new("level.json", 16, 64);
-    let (world_width, world_height) = world.grid.get_size();
+    let (world_width, world_height) = (16usize, 64usize);
+    let mut world = Level::new("level.json", world_width, world_height);
+
+    // Populate world with mobs
+    for m in &world.mob_list {
+        mobs.new_monster(IVec2::from(*m));
+    }
 
     // Camera plane scaling factor
     let plane_scale = -1.05;

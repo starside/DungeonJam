@@ -16,6 +16,7 @@ use crate::sprites::{Sprites, SpriteType};
 pub struct Level {
     pub player_start: (usize, usize),
     pub grid: Grid2D<RayGridCell>,
+    pub mob_list: Vec<(i32, i32)>, // For now assume monster type
     filename: String
 }
 
@@ -27,7 +28,8 @@ impl Level
         let mut new_level = Level {
             player_start: (8, 8),
             grid,
-            filename: level_name.to_string()
+            filename: level_name.to_string(),
+            mob_list: Vec::new()
         };
 
         match new_level.load_from_file(level_name) {
@@ -219,7 +221,9 @@ impl LevelEditor {
                         world.player_start = t;
                     }
                     KeyCode::E => {
-                        mob_manager.new_monster(mouse_world_pos.as_ivec2());
+                        let new_monster_pos = mouse_world_pos.as_ivec2();
+                        world.mob_list.push(<(i32, i32)>::from(new_monster_pos));
+                        mob_manager.new_monster(new_monster_pos);
                     }
                     KeyCode::Escape => {
                         new_game_state = Some(GameState::FirstPerson);
