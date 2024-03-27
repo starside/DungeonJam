@@ -98,19 +98,29 @@ impl PlayerState {
                         Idle
                     }
                     KeyCode::W => { // Move forward
-                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkForward, facing, level) {
-                            self.new_player_pos = Some((new_pos.x, new_pos.y));
-                            Moving
-                        }else {
+                        if self.look_rotation != 0.0 {
+                            self.look_rotation = 0.0;
                             Idle
+                        } else {
+                            if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkForward, facing, level) {
+                                self.new_player_pos = Some((new_pos.x, new_pos.y));
+                                Moving
+                            }else {
+                                Idle
+                            }
                         }
                     }
                     KeyCode::S => { // Move backwards
-                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkBackward, facing, level) {
-                            self.new_player_pos = Some((new_pos.x, new_pos.y));
-                            Moving
-                        }else {
+                        if self.look_rotation != 0.0 {
+                            self.look_rotation = 0.0;
                             Idle
+                        } else {
+                            if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkBackward, facing, level) {
+                                self.new_player_pos = Some((new_pos.x, new_pos.y));
+                                Moving
+                            } else {
+                                Idle
+                            }
                         }
                     }
                     KeyCode::Q => { // Move up
