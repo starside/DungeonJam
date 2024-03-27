@@ -199,7 +199,8 @@ impl LevelEditor {
         draw_circle(player_screen_coords.x, player_screen_coords.y, 3.0, colors::GOLD);
 
         // Draw monster positions
-        for s in mob_manager.mob_list.iter() {
+        for mob in mob_manager.mob_list.iter() {
+            let s = mob.borrow();
             let p = world.grid.grid_to_screen_coords(s.pos, screen_size).as_vec2();
             let mob_color = match s.is_alive {
                 true => {GREEN}
@@ -233,7 +234,8 @@ impl LevelEditor {
                     }
                     KeyCode::K => {
                         let kill_monster_pos = mouse_world_pos.as_ivec2();
-                        for mob in mob_manager.mob_list.iter_mut() {
+                        for mob in mob_manager.mob_list.iter() {
+                            let mob = &mut mob.borrow_mut();
                             if mob.pos.as_ivec2() == kill_monster_pos {
                                 mob.is_alive = false;
                             }

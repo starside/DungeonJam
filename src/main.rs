@@ -227,7 +227,8 @@ impl PlayerState {
     }
 }
 
-fn move_bullets(m: &mut Mob, last_frame_time: f64, world: &Level) {
+fn move_bullets(m: &Mob, last_frame_time: f64, world: &Level) {
+    let m = &mut m.borrow_mut();
     let last_state = m.moving;
     debug_assert!(last_state.is_some());
     match &last_state {
@@ -360,6 +361,7 @@ async fn main() {
                 // Update sprites.  Not really efficient but whatever
                 sprite_manager.clear_sprites();
                 for m in mobs.mob_list.iter() {
+                    let m = m.borrow();
                     match &m.mob_type {
                         MobType::Monster(monster) => {
                             let monster_scaling = DVec3::from((0.8, 0.8, 0.0));
@@ -374,11 +376,12 @@ async fn main() {
 
                 // Animate mobs
                 let last_frame_time = get_frame_time() as f64; // Check if game only calls once per frame
-                for m in mobs.mob_list.iter_mut() {
-                    match m.mob_type {
+                for m in mobs.mob_list.iter() {
+                    let mob_type = &m.borrow().mob_type;
+                    match mob_type {
                         MobType::Monster(_) => {}
                         MobType::Bullet => {
-                            move_bullets(m, last_frame_time, &world);
+                            move_bullets(&m, last_frame_time, &world);
                         }
                     }
                 }
