@@ -228,16 +228,21 @@ impl LevelEditor {
                     }
                     KeyCode::E => {
                         let new_monster_pos = mouse_world_pos.as_ivec2();
-                        if mob_manager.new_monster(new_monster_pos, mob_grid) == true {
+                        if mob_manager.new_monster(new_monster_pos, mob_grid) {
                             world.mob_list.push(<(i32, i32)>::from(new_monster_pos));
                         }
                     }
                     KeyCode::K => {
                         let kill_monster_pos = mouse_world_pos.as_ivec2();
-                        for mob in mob_manager.mob_list.iter() {
-                            let mob = &mut mob.borrow_mut();
-                            if mob.pos.as_ivec2() == kill_monster_pos {
-                                mob.is_alive = false;
+                        if let Some(mob_to_die) = mob_grid.get_cell_at_grid_coords_int(kill_monster_pos) {
+                            match mob_to_die {
+                                MobId::Mob(x) => {
+                                    println!("Mob");
+                                    let mm = &mut x.borrow_mut();
+                                    println!("mm.is_alive {}", mm.is_alive);
+                                    mm.is_alive = false;
+                                }
+                                _ => {}
                             }
                         }
                     }
