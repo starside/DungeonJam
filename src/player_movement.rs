@@ -80,10 +80,13 @@ pub fn is_supported_position(pos: IVec2, level: &Level) -> bool {
 }
 
 pub fn is_wall(pos: IVec2, level: &Level) -> bool {
-    if level.grid.get_cell_at_grid_coords_int(pos).unwrap().cell_type == GridCellType::Wall {
-        true
+    if let Some(x) = level.grid.get_cell_at_grid_coords_int(pos) {
+        match x.cell_type {
+            GridCellType::Empty => {false}
+            GridCellType::Wall => {true}
+        }
     } else {
-        false
+        true
     }
 }
 

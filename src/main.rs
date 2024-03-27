@@ -14,6 +14,7 @@ use std::fmt::Pointer;
 use std::path::{Path, PathBuf};
 use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
+use crate::grid2d::GridCellType;
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
 use crate::mob::{MagicColor, Mobs, MobType};
@@ -306,6 +307,9 @@ async fn main() {
                     }
                 }
 
+                // Delete mobs marked as dead
+                mobs.delete_dead_mobs();
+
                 // Update sprites.  Not really efficient but whatever
                 sprite_manager.clear_sprites();
                 for m in mobs.mob_list.iter() {
@@ -336,8 +340,17 @@ async fn main() {
                                     let new_lerp =
                                         (lerp + (move_this_frame/total_move_distance))
                                             .clamp(0.0, 1.0);
-                                    m.moving = Some((*start, *end, new_lerp));
-                                    m.pos = apply_boundary_conditions_f64(start.lerp(*end, new_lerp), world.grid.get_size());
+                                    let new_pos = apply_boundary_conditions_f64(
+                                        start.lerp(*end, new_lerp),
+                                        world.grid.get_size());
+                                    let hit_wall = player_movement::is_wall(new_pos.as_ivec2(), &world);
+                                    if new_lerp >= 1.0 || hit_wall {
+                                        m.is_alive = false;
+                                        m.moving = None;
+                                    } else {
+                                        m.moving = Some((*start, *end, new_lerp));
+                                        m.pos = new_pos;
+                                    }
                                 }
                             }
                         }

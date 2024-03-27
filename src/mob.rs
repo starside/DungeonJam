@@ -37,6 +37,19 @@ impl Mobs {
             mob_list: Vec::new()
         }
     }
+
+    pub fn delete_dead_mobs(&mut self) {
+        let mut dead_mobs: Vec<usize> = Vec::with_capacity(self.mob_list.len());
+        for (i, mob) in self.mob_list.iter().enumerate() {
+            if !mob.is_alive {
+                dead_mobs.push(i);
+            }
+        }
+        dead_mobs.sort();
+        for i in dead_mobs.iter().rev() {
+            self.mob_list.swap_remove(*i);
+        }
+    }
     pub fn new_monster(&mut self, pos: IVec2) -> usize {
         let float_speed = 1.0; // In world coordinates per second
         let offset = DVec2::from((0.5, 0.5));
