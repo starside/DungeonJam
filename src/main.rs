@@ -19,7 +19,7 @@ use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
 use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType};
-use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, PlayerPosition, try_move};
+use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 use crate::sprites::SpriteType;
 
@@ -72,14 +72,16 @@ impl PlayerState {
                      mobs: &mut Mobs,
                      player_facing: &mut f64,
                      player_pos: &PlayerPosition,
-                     level: &Level) -> PlayerMode {
+                     level: &Level,
+                     mob_grid: &Grid2D<MobId>) -> PlayerMode {
         let player_pos_ivec = player_pos.get_pos();
 
         self.new_player_pos = None;
 
         let facing = *player_facing as i32;
+        let standing_on_mob = !is_room_occupiable(player_pos_ivec + IVec2::new(0, 1), mob_grid);
 
-        if !is_supported_position(player_pos_ivec, level) {
+        if !is_supported_position(player_pos_ivec, level)  && !standing_on_mob {
             self.new_player_pos = None;
             return Falling;
         }
@@ -103,7 +105,7 @@ impl PlayerState {
                             self.look_rotation = 0.0;
                             Idle
                         } else {
-                            if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkForward, facing, level) {
+                            if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkForward, facing, level, &mob_grid) {
                                 self.new_player_pos = Some((new_pos.x, new_pos.y));
                                 Moving
                             }else {
@@ -116,7 +118,7 @@ impl PlayerState {
                             self.look_rotation = 0.0;
                             Idle
                         } else {
-                            if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkBackward, facing, level) {
+                            if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::WalkBackward, facing, level, &mob_grid) {
                                 self.new_player_pos = Some((new_pos.x, new_pos.y));
                                 Moving
                             } else {
@@ -125,7 +127,7 @@ impl PlayerState {
                         }
                     }
                     KeyCode::Q => { // Move up
-                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::ClimbUp, facing, level) {
+                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::ClimbUp, facing, level, &mob_grid) {
                             self.new_player_pos = Some((new_pos.x, new_pos.y));
                             Moving
                         }else {
@@ -133,7 +135,7 @@ impl PlayerState {
                         }
                     }
                     KeyCode::E => { // Move down
-                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::ClimbDown, facing, level) {
+                        if let Some(new_pos) = try_move(player_pos_ivec, MoveDirection::ClimbDown, facing, level, &mob_grid) {
                             self.new_player_pos = Some((new_pos.x, new_pos.y));
                             Moving
                         }else {
@@ -203,7 +205,8 @@ impl PlayerState {
 
         match self.new_player_pos {
             None => {
-                if has_floor(player_pos_ivec, level).is_some() { // Fall was stopped by floor
+                if has_floor(player_pos_ivec, level).is_some() || // Fall stopped by floor
+                    !is_room_occupiable(player_pos_ivec + IVec2::new(0, 1), mob_grid) { // Fall stopped by mob
                     Idle
                 } else {
                     self.new_player_pos = Some( (player_icoords.0, player_icoords.1 + 1)); // Fall down one tile
@@ -231,8 +234,6 @@ impl PlayerState {
                 Falling
             }
         }
-
-
     }
 }
 
@@ -353,7 +354,7 @@ async fn main() {
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world)
+                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world, &mob_grid)
                     }
                     Moving => {
                         player_state.do_moving_state(&mut player_pos, &mut pos,  &mut mob_grid, &mut world)

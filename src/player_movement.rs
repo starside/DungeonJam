@@ -2,6 +2,7 @@ use macroquad::math::{DVec2, IVec2};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::level::Level;
 use crate::mob::MobId;
+use crate::PlayerMode::Idle;
 
 pub struct PlayerPosition {
     pos: IVec2
@@ -25,7 +26,7 @@ impl PlayerPosition {
         (self.pos.x, self.pos.y)
     }
 
-    pub fn set_pos(&mut self, new_pos: IVec2, mob_grid: &mut Grid2D<MobId>) -> Result<(), MobId> {
+    pub fn try_set_pos(&self, new_pos: IVec2, mob_grid: &Grid2D<MobId>) -> Result<(), MobId> {
         if self.pos == new_pos {
             return Ok(()) // Didn't move
         }
@@ -39,7 +40,11 @@ impl PlayerPosition {
                 }
             }
         };
+        res
+    }
 
+    pub fn set_pos(&mut self, new_pos: IVec2, mob_grid: &mut Grid2D<MobId>) -> Result<(), MobId> {
+        let res = self.try_set_pos(new_pos, mob_grid);
         if res.is_ok() {
             mob_grid.set_cell_at_grid_coords_int(self.pos, MobId::NoMob);
             mob_grid.set_cell_at_grid_coords_int(new_pos, MobId::Player);
@@ -145,12 +150,25 @@ pub enum MoveDirection {
     ClimbDown
 }
 
-pub fn try_move(pos: IVec2, dir: MoveDirection, facing: i32, level: &Level) -> Option<IVec2> {
+pub fn is_room_occupiable(pos: IVec2, mob_grid: &Grid2D<MobId>) -> bool {
+    match mob_grid.get_cell_at_grid_coords_int(pos) {
+        None => {false}
+        Some(x) => {
+            match x {
+                MobId::NoMob => {true}
+                MobId::Mob(_) => {false}
+                MobId::Player => {true}
+            }
+        }
+    }
+}
+
+pub fn try_move(pos: IVec2, dir: MoveDirection, facing: i32, level: &Level, mob_grid: &Grid2D<MobId>) -> Option<IVec2> {
     assert_eq!(facing.abs(), 1);
     match dir {
         MoveDirection::WalkForward => {
             let new_pos = pos - IVec2::from((facing, 0));
-            if !is_wall(new_pos, level) {
+            if !is_wall(new_pos, level) && is_room_occupiable(new_pos, mob_grid) {
                 Some(new_pos)
             } else {
                 None
@@ -158,7 +176,7 @@ pub fn try_move(pos: IVec2, dir: MoveDirection, facing: i32, level: &Level) -> O
         }
         MoveDirection::WalkBackward => {
             let new_pos = pos + IVec2::from((facing, 0));
-            if !is_wall(new_pos, level) {
+            if !is_wall(new_pos, level) && is_room_occupiable(new_pos, mob_grid) {
                 Some(new_pos)
             } else {
                 None
@@ -167,7 +185,11 @@ pub fn try_move(pos: IVec2, dir: MoveDirection, facing: i32, level: &Level) -> O
         MoveDirection::ClimbUp => {
             if can_climb_up(pos, level) {
                 let new_pos = pos + IVec2::from((0, -1));
-                Some(new_pos)
+                if is_room_occupiable(new_pos, mob_grid) {
+                    Some(new_pos)
+                } else {
+                    None
+                }
             } else {
                 None
             }
@@ -175,7 +197,11 @@ pub fn try_move(pos: IVec2, dir: MoveDirection, facing: i32, level: &Level) -> O
         MoveDirection::ClimbDown => {
             if can_climb_down(pos, level) || !has_floor(pos, level).is_some() {
                 let new_pos = pos + IVec2::from((0, 1));
-                Some(new_pos)
+                if is_room_occupiable(new_pos, mob_grid) {
+                    Some(new_pos)
+                } else {
+                    None
+                }
             } else {
                 None
             }
