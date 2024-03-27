@@ -18,7 +18,7 @@ use macroquad::prelude::*;
 use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor, Mob, MobData, MobId, Mobs, MobType};
+use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_supported_position, MoveDirection, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 use crate::sprites::SpriteType;
@@ -228,7 +228,7 @@ impl PlayerState {
     }
 }
 
-fn move_bullets(m: &mut MobData, last_frame_time: f64, world: &Level) {
+fn move_bullets(m: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: &Grid2D<MobId>) {
     let last_state = m.moving;
     debug_assert!(last_state.is_some());
     match &last_state {
@@ -244,6 +244,21 @@ fn move_bullets(m: &mut MobData, last_frame_time: f64, world: &Level) {
             let new_pos = apply_boundary_conditions_f64(
                 start.lerp(*end, new_lerp),
                 world.grid.get_size());
+
+            // Check for hit with entity
+            match mob_at_cell(new_pos.as_ivec2(), mob_grid) {
+                MobId::NoMob => {}
+                MobId::Mob(mob) => {
+                    let m = &mut mob.borrow_mut();
+                    println!("Bullet it mob at {}", m.pos);
+                    m.is_alive = false;
+                }
+                MobId::Player => {
+                    println!("hit player {}", new_pos)
+                }
+            }
+
+            // Check for wall hit or end of movement
             let hit_wall = player_movement::is_wall(new_pos.as_ivec2(), &world);
             if new_lerp >= 1.0 || hit_wall {
                 m.is_alive = false;
@@ -381,7 +396,7 @@ async fn main() {
                     match mob_type.mob_type {
                         MobType::Monster(_) => {}
                         MobType::Bullet => {
-                            move_bullets(&mut mob_type, last_frame_time, &world);
+                            move_bullets(&mut mob_type, last_frame_time, &world, &mob_grid);
                         }
                     }
                 }

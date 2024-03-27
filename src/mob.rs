@@ -3,6 +3,7 @@ use std::rc::Rc;
 use macroquad::math::{DVec2, IVec2};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
+use crate::level::Level;
 use crate::mob::MagicColor::White;
 type AliveDead = bool;
 
@@ -31,7 +32,7 @@ pub struct MobData {
 }
 
 pub type Mob = Rc<RefCell<Box<MobData>>>;
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum MobId {
     #[default]
     NoMob,
@@ -132,5 +133,13 @@ impl Mobs {
 
         self.mob_list.push(Rc::new(RefCell::new(Box::new(mob))));
         self.mob_list.len() - 1
+    }
+}
+
+pub fn mob_at_cell(pos: IVec2, grid: &Grid2D<MobId>) -> MobId {
+    if let Some(x) = grid.get_cell_at_grid_coords_int(pos) {
+        x.clone()
+    } else {
+        MobId::NoMob
     }
 }
