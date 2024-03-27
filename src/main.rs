@@ -9,12 +9,14 @@ mod physics;
 mod sprites;
 mod image;
 mod mob;
+mod combat;
 
 use std::fmt::Pointer;
 use std::path::{Path, PathBuf};
 use macroquad::math::f64;
 use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
+use crate::combat::{Collision, CollisionType};
 use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
@@ -238,7 +240,7 @@ impl PlayerState {
     }
 }
 
-fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: &Grid2D<MobId>) {
+fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: &Grid2D<MobId>, collisions: &mut Vec<Collision>) {
     let last_state = bullet.moving;
     debug_assert!(last_state.is_some());
     match &last_state {
@@ -256,15 +258,16 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
                 world.grid.get_size());
 
             // Check for hit with entity
-            match mob_at_cell(new_pos.as_ivec2(), mob_grid) {
+            let mob_hit_by_bullet = mob_at_cell(new_pos.as_ivec2(), mob_grid);
+            match mob_hit_by_bullet {
                 MobId::NoMob => {}
-                MobId::Mob(mob) => {
-                    let m = &mut mob.borrow_mut();
-                    println!("Bullet it mob at {}", m.pos);
-                    m.is_alive = false;
+                MobId::Mob(ref mob) => {
+                    bullet.is_alive = false;
+                    println!("TODO: Magic color needs to depend on type"); // TODO!!!
+                    collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), MagicColor::White));
                 }
                 MobId::Player => {
-                    println!("hit player {}", new_pos);
+                    collisions.push(Collision::new_with_bullet(MobId::Player, MagicColor::White));
                     bullet.is_alive = false;
                 }
             }
@@ -328,6 +331,9 @@ async fn main() {
 
     let mut game_state = GameState::LevelEditor;
     let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0};
+
+    // Array to store collisions
+    let mut collisions: Vec<Collision> = Vec::with_capacity(16);
 
     loop {
         let screen_size = window::screen_size();
@@ -407,10 +413,30 @@ async fn main() {
                     match mob_type.mob_type {
                         MobType::Monster(_) => {}
                         MobType::Bullet => {
-                            move_bullets(&mut mob_type, last_frame_time, &world, &mob_grid);
+                            move_bullets(&mut mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
                         }
                     }
                 }
+
+                // Handle collisions
+                for c in collisions.iter() {
+                    match &c.collision_type {
+                        CollisionType::Bullet(mob, bullet_color) => {
+                            match mob {
+                                MobId::NoMob => {}
+                                MobId::Mob(x) => {
+                                    let m = &mut x.borrow_mut();
+                                    m.is_alive = false;
+                                    println!("Hit mob {}", m.pos);
+                                }
+                                MobId::Player => {
+                                    println!("Hit player");
+                                }
+                            }
+                        }
+                    }
+                }
+                collisions.clear();
 
                 // Draw frame
                 let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
