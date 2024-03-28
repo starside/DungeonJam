@@ -488,43 +488,6 @@ async fn main() {
                             MobType::Bullet => {}
                         }
                     }
-
-                    /*let mob_type = &mut m.borrow_mut();
-                    match &mut mob_type.mob_type {
-                        MobType::Monster(monster) => {
-                            monster.update(last_frame_time);
-                            if monster.can_attack() {
-                                mob_type.has_line_of_sight(pos, &world.grid);
-                                monster.start_attack_cooldown()
-                            }
-
-                            /*let mut fire:bool = false; // should we fire?
-                            if monster.can_attack() {
-                                if let Some(_) = mob_type.has_line_of_sight(pos, &world.grid){
-                                    // Check if another monster blocks line of sight.
-                                    let x = mob_type.has_line_of_sight(pos, &mob_grid);
-                                    if let Some(y) = x {
-                                        if let Some(hit) = mob_grid.get_cell_at_grid_coords_int(y) {
-                                            match hit {
-                                                MobId::NoMob => {}
-                                                MobId::Mob(_) => {}
-                                                MobId::Player => {
-                                                    fire = true
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if fire {
-                                println!("Attacking!");
-                                //monster.start_attack_cooldown();
-                            }*/
-                        }
-                        MobType::Bullet => {
-                            move_bullets(&mut mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
-                        }
-                    }*/
                 }
 
                 // Handle collisions
