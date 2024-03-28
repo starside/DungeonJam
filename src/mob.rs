@@ -60,7 +60,7 @@ pub struct MobData {
 
 impl MobData {
     pub fn has_line_of_sight<T>(&self, target: DVec2, grid: &Grid2D<T>)
-        where T: Default + Copy + Clone + Serialize + DeserializeOwned + From<WallGridCell> + Into<WallGridCell> {
+        where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell> {
         let dir = (target - self.pos).normalize();
          cast_ray(grid, &self.pos, &dir, 10.0);
     }
@@ -73,6 +73,16 @@ pub enum MobId {
     NoMob,
     Mob(Mob),
     Player
+}
+
+impl From<MobId> for WallGridCell {
+    fn from(value: MobId) -> Self {
+        match value {
+            MobId::NoMob => {WallGridCell::Empty}
+            MobId::Mob(_) => {WallGridCell::Wall}
+            MobId::Player => {WallGridCell::Wall}
+        }
+    }
 }
 
 impl Serialize for MobId {

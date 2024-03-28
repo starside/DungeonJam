@@ -448,6 +448,7 @@ async fn main() {
                             if monster.can_attack() {
                                 monster.start_attack_cooldown();
                                 mob_type.has_line_of_sight(player_pos.get_pos_dvec(), &world.grid);
+                                mob_type.has_line_of_sight(player_pos.get_pos_dvec(), &mob_grid);
                             }
                         }
                         MobType::Bullet => {

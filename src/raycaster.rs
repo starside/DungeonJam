@@ -12,8 +12,8 @@ pub enum HitSide {
 // start amd end are in grid coordinates, assuming each cell has size 1,
 // so start (3.5, 14.7) would be inside cells (3, 14)
 pub fn cast_ray<T>(grid: &Grid2D<T>, start: &DVec2, ray_dir: &DVec2, max_ray_distance: f64) ->
-                                            (f64, T, HitSide, IVec2)
-    where T: Default + Copy + Clone + Serialize + DeserializeOwned + From<WallGridCell> + Into<WallGridCell> {
+                                            (f64, WallGridCell, HitSide, IVec2)
+    where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell> {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
 
@@ -66,11 +66,11 @@ pub fn cast_ray<T>(grid: &Grid2D<T>, start: &DVec2, ray_dir: &DVec2, max_ray_dis
         match cell {
             None => {hit = true;}
             Some(x) => {
-                match (*x).into() {
+                match x.clone().into() {
                     WallGridCell::Empty => {}
                     WallGridCell::Wall => {
                         hit = true;
-                        cell_hit_type = (*x).into();
+                        cell_hit_type = x.clone().into();
                     }
                 }
             }
@@ -89,5 +89,5 @@ pub fn cast_ray<T>(grid: &Grid2D<T>, start: &DVec2, ray_dir: &DVec2, max_ray_dis
         side_dist_y - delta_dist_y
     };
 
-    (perp_wall_distance, T::from(cell_hit_type), side, IVec2::from((map_x, map_y)))
+    (perp_wall_distance, cell_hit_type, side, IVec2::from((map_x, map_y)))
 }
