@@ -7,7 +7,7 @@ use crate::level::Level;
 use crate::mob::MagicColor::White;
 type AliveDead = bool;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum MagicColor {
     White,
     Black

@@ -21,6 +21,7 @@ use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
 use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType};
+use crate::mob::MagicColor::{Black, White};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 use crate::sprites::SpriteType;
@@ -75,7 +76,8 @@ impl PlayerState {
                      player_facing: &mut f64,
                      player_pos: &PlayerPosition,
                      level: &Level,
-                     mob_grid: &Grid2D<MobId>) -> PlayerMode {
+                     mob_grid: &Grid2D<MobId>,
+                     mana_color: &mut MagicColor) -> PlayerMode {
         let player_pos_ivec = player_pos.get_pos();
 
         self.new_player_pos = None;
@@ -150,7 +152,15 @@ impl PlayerState {
                         let shoot_pos =
                             ppos + 0.25*shoot_dir +
                             ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * shoot_dir); // start out of player room
-                        mobs.new_bullet(shoot_pos, shoot_dir, MagicColor::White);
+                        mobs.new_bullet(shoot_pos, shoot_dir, *mana_color);
+                        Idle
+                    }
+                    KeyCode::Left => {
+                        *mana_color = White;
+                        Idle
+                    }
+                    KeyCode::Right => {
+                        *mana_color = Black;
                         Idle
                     }
                     _ => {Idle}
@@ -324,6 +334,9 @@ async fn main() {
     // These are the gameplay variables, the others should not be modified directly
     let mut player_pos = player_movement::PlayerPosition::new(world.player_start);
     let mut player_facing: f64 = 1.0;
+    let mut mana_color: MagicColor = White;
+    let player_max_hp: f64 = 639.0;
+    let mut player_hp:f64 = player_max_hp;
 
     // Level editor
     let mut level_editor = level::LevelEditor::new();
@@ -361,7 +374,7 @@ async fn main() {
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world, &mob_grid)
+                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world, &mob_grid, &mut mana_color)
                     }
                     Moving => {
                         player_state.do_moving_state(&mut player_pos, &mut pos,  &mut mob_grid, &mut world)
@@ -426,7 +439,7 @@ async fn main() {
                                 MobId::Mob(x) => {
                                     let m = &mut x.borrow_mut();
                                     m.is_alive = false;
-                                    println!("Hit mob {}", m.pos);
+                                    println!("Hit mob {} with color {:?}", m.pos, bullet_color);
                                 }
                                 MobId::Player => {
                                     println!("Hit player");
@@ -452,7 +465,20 @@ async fn main() {
 
                 // Draw FPS meter
                 let fps = get_fps();
-                draw_text(format!("{}", fps).as_str(), 20.0, 20.0, 30.0, DARKGRAY);
+                draw_text(format!("{}", fps).as_str(), 20.0, 400.0, 30.0, DARKGRAY);
+
+                // Show UI
+                let (ui_color, mana_color_string) = match mana_color {
+                    White => {(WHITE, "Light")}
+                    Black => {(BLACK, "Void")}
+                };
+                let font_size = 30.0 * (screen_size.0/800.0);
+                let font_y_spacing = font_size * 0.6;
+                let font_y_padding = font_size * 0.05;
+                let health_string = format!("HP: {}/{}", player_hp as i32, player_max_hp as i32);
+                let mana_string = format!("Mana type: {}", mana_color_string);
+                draw_text(health_string.as_str(), font_size*0.1, font_y_spacing, font_size, ui_color);
+                draw_text(mana_string.as_str(), font_size*0.1, 2.0*(font_y_spacing+font_y_padding), font_size, ui_color);
             }
 
             GameState::LevelEditor => {
