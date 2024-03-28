@@ -330,7 +330,7 @@ async fn main() {
 
     // Populate world with mobs
     for m in &world.mob_list {
-        mobs.new_monster(IVec2::from(*m), &mut mob_grid);
+        mobs.new_monster(IVec2::from(*m), &mut mob_grid, MagicColor::White);
     }
 
     // Camera plane scaling factor
@@ -358,7 +358,7 @@ async fn main() {
 
     // Array to store collisions
     let mut collisions: Vec<Collision> = Vec::with_capacity(16);
-    let mut new_bullets: Vec<(DVec2, DVec2)> = Vec::new();
+    let mut new_bullets: Vec<(DVec2, DVec2, MagicColor)> = Vec::new();
 
     loop {
         let screen_size = window::screen_size();
@@ -453,7 +453,7 @@ async fn main() {
                         }
                     };
 
-                    let mut fire: Option<(DVec2, DVec2)> = None;
+                    let mut fire: Option<(DVec2, DVec2, MagicColor)> = None;
                     if can_attack {
                         let mob_type = &m.borrow();
                         match &mob_type.mob_type {
@@ -468,7 +468,7 @@ async fn main() {
                                                 MobId::NoMob => {}
                                                 MobId::Mob(_) => {}
                                                 MobId::Player => {
-                                                    fire = Some((mob_type.pos, (pos - mob_type.pos).normalize()));
+                                                    fire = Some((mob_type.pos, (pos - mob_type.pos).normalize(), mob_type.color));
                                                 }
                                             }
                                         }
@@ -495,9 +495,8 @@ async fn main() {
                 }
 
                 // Create new bullets
-                println!("{:?}", new_bullets);
-                for (pos, dir) in new_bullets.iter() {
-                    mobs.new_bullet(*pos, *dir, White);
+                for (pos, dir, color) in new_bullets.iter() {
+                    mobs.new_bullet(*pos, *dir, *color);
                 }
                 new_bullets.clear();
 

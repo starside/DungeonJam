@@ -10,6 +10,7 @@ use crate::{GameState, grid_viewer, image};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
 use crate::mob::{MobId, Mobs};
+use crate::mob::MagicColor::{Black, White};
 use crate::sprites::{Sprites, SpriteType};
 
 #[derive(Serialize, Deserialize)]
@@ -228,7 +229,13 @@ impl LevelEditor {
                     }
                     KeyCode::E => {
                         let new_monster_pos = mouse_world_pos.as_ivec2();
-                        if mob_manager.new_monster(new_monster_pos, mob_grid) {
+                        if mob_manager.new_monster(new_monster_pos, mob_grid, White) {
+                            world.mob_list.push(<(i32, i32)>::from(new_monster_pos));
+                        }
+                    }
+                    KeyCode::R => {
+                        let new_monster_pos = mouse_world_pos.as_ivec2();
+                        if mob_manager.new_monster(new_monster_pos, mob_grid, Black) {
                             world.mob_list.push(<(i32, i32)>::from(new_monster_pos));
                         }
                     }

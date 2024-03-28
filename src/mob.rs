@@ -154,7 +154,7 @@ impl Mobs {
             self.mob_list.swap_remove(*i);
         }
     }
-    pub fn new_monster(&mut self, pos: IVec2, mob_grid: &mut Grid2D<MobId>) -> bool {
+    pub fn new_monster(&mut self, pos: IVec2, mob_grid: &mut Grid2D<MobId>, color: MagicColor) -> bool {
         if let Some(m) = mob_grid.get_cell_at_grid_coords_int(pos) {
             match m {
                 MobId::NoMob => { // No mob here
@@ -168,7 +168,7 @@ impl Mobs {
                         moving: None,
                         move_speed: float_speed,
                         pos: real_pos,
-                        color: White,
+                        color,
                         mob_type: MobType::Monster(
                             MonsterState {
                                 last_move_time: monster_move_cooldown,
