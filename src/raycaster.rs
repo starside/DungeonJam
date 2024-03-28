@@ -1,4 +1,6 @@
 use macroquad::math::{DVec2, IVec2};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use crate::grid2d::{Grid2D, WallGridCell};
 
 #[derive(PartialEq)]
@@ -9,8 +11,9 @@ pub enum HitSide {
 
 // start amd end are in grid coordinates, assuming each cell has size 1,
 // so start (3.5, 14.7) would be inside cells (3, 14)
-pub fn cast_ray(grid: &Grid2D<WallGridCell>, start: &DVec2, ray_dir: &DVec2, max_ray_distance: f64) ->
-                                            (f64, WallGridCell, HitSide, IVec2) {
+pub fn cast_ray<T>(grid: &Grid2D<T>, start: &DVec2, ray_dir: &DVec2, max_ray_distance: f64) ->
+                                            (f64, WallGridCell, HitSide, IVec2)
+    where WallGridCell: From<T>, T: Default + Copy + Clone + Serialize + DeserializeOwned {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
 
@@ -63,11 +66,11 @@ pub fn cast_ray(grid: &Grid2D<WallGridCell>, start: &DVec2, ray_dir: &DVec2, max
         match cell {
             None => {hit = true;}
             Some(x) => {
-                match x {
+                match (*x).into() {
                     WallGridCell::Empty => {}
                     WallGridCell::Wall => {
                         hit = true;
-                        cell_hit_type = *x;
+                        cell_hit_type = (*x).into();
                     }
                 }
             }
