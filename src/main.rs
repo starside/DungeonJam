@@ -157,11 +157,10 @@ impl PlayerState {
                         Idle
                     }
                     KeyCode::Left => {
-                        *mana_color = White;
-                        Idle
-                    }
-                    KeyCode::Right => {
-                        *mana_color = Black;
+                        *mana_color = match mana_color {
+                            White => {Black}
+                            Black => {White}
+                        };
                         Idle
                     }
                     _ => {Idle}
