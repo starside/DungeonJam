@@ -1,17 +1,18 @@
 use std::cmp::Ordering;
-use macroquad::color::{Color, YELLOW};
-use macroquad::math::{DMat2, DVec2, DVec3};
-use macroquad::prelude::mat2;
-use crate::fpv::FirstPersonViewer;
+use macroquad::color::{BEIGE, BLACK, Color, DARKPURPLE, GRAY, LIGHTGRAY, RED, VIOLET, YELLOW};
+use macroquad::math::{DMat2, DVec2, DVec3, DVec4};
+use macroquad::prelude::{mat2, WHITE};
+use crate::fpv::{FirstPersonViewer, fog_factor};
 use crate::{fpv, image};
 use crate::image::ImageLoader;
 use crate::level::Level;
+use crate::mob::MagicColor;
 
-pub type SpriteType = image::ImageId;
+pub type SpriteType = (image::ImageId, MagicColor);
 
 pub struct Sprites {
     pub sp_positions: Vec<DVec2>, // midpoint sprite position
-    sp_size: Vec<DVec3>, // Describes width, height of sprite, position is midpoint
+    sp_size: Vec<DVec4>, // Describes width, height of sprite, position is midpoint
     sp_type: Vec<SpriteType>,
     sp_draw_order: Vec<(f64, usize)> // distance, index
 }
@@ -42,7 +43,7 @@ impl Sprites {
         self.sp_type.swap_remove(sprite_idx);
     }
 
-    pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType, scaling: DVec3) {
+    pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType, scaling: DVec4) {
         self.sp_positions.push(pos);
         self.sp_type.push(sprite_type);
         self.sp_size.push(scaling); // x scale, y scale, x offset
@@ -95,9 +96,9 @@ impl Sprites {
         });
 
         // TODO: Frustum culling
-        for (sprite, sprite_scale, sprite_image) in self.sp_draw_order.iter().map(|x| {
+        for (sprite, sprite_scale, sprite_image, mana_color) in self.sp_draw_order.iter().map(|x| {
                 let (_, i) = *x;
-                (&self.sp_positions[i], self.sp_size[i], sprite_images.get_image(self.sp_type[i]))
+                (&self.sp_positions[i], self.sp_size[i], sprite_images.get_image(self.sp_type[i].0), self.sp_type[i].1)
         }) {
             let sprite_rel_pos = find_distance_across_boundary(
                 *sprite,
@@ -120,7 +121,7 @@ impl Sprites {
             let draw_start_x = 0.0f64.max(draw_start_x_fp) as usize;
             let draw_end_x = (rw - 1).min((sprite_width / 2.0 + offset_x) as usize);
             // Calculate x tex coord start
-            let tex_delta_x = 1.0/sprite_width as f32 * sprite_width_pixels;
+            let tex_delta_x = 1.0/sprite_width as f32;
             let tex_start_x = if draw_start_x_fp < 0.0 {draw_start_x_fp.abs() as f32 * tex_delta_x} else {0.0f32};
 
             // Calculate height of sprite
@@ -129,21 +130,38 @@ impl Sprites {
             let draw_start_y = 0.0f64.max(draw_start_y_fp) as usize;
             let draw_end_y = (rh - 1).min((sprite_height / 2.0 + sprite_screen_y) as usize);
             // Calculate y tex coord start
-            let tex_delta_y = 1.0/sprite_height as f32 * sprite_height_pixels;
+            let tex_delta_y = 1.0/sprite_height as f32;
             let tex_start_y = if draw_start_y_fp < 0.0 {draw_start_y_fp.abs() as f32 * tex_delta_y} else {0.0f32};
 
             let rd = fpv.render_image.get_image_data_mut();
             let sprite_rd = sprite_image.get_image_data();
 
+            // Shields
+            let shield_start = 0.3f32;
+            let shield_start2 = shield_start.powi(2);
+            let shield_end2 = (shield_start + (0.05f32 * sprite_scale.w as f32)).powi(2);
+            let shield_color = match mana_color {
+                MagicColor::White => {GRAY}
+                MagicColor::Black => {DARKPURPLE}
+            };
+
             let sprite_width_u = sprite_image.width as usize;
             let mut tex_y = tex_start_y;
             for y in draw_start_y..=draw_end_y {
                 let mut tex_x = tex_start_x;
+                let ty2 = (tex_y - 0.5)*(tex_y - 0.5);
                 let fog_f32 = fpv::fog_factor(transform.y, cutoff_distance) as f32;
+                let shield_color:[u8;4] = [   (shield_color.r * 255.0 * fog_f32) as u8,
+                    (shield_color.g * 255.0 * fog_f32) as u8,
+                    (shield_color.b * 255.0 * fog_f32) as u8,
+                    255
+                ];
                 if transform.y < fpv.z_buffer[y] {
                     for x in draw_start_x..=draw_end_x {
-                        let sprite_x = sprite_width_pixels.min(tex_x) as usize;
-                        let sprite_y = sprite_height_pixels.min(tex_y) as usize;
+                        let sprite_x = sprite_width_pixels.min(tex_x*sprite_width_pixels) as usize;
+                        let sprite_y = sprite_height_pixels.min(tex_y*sprite_height_pixels) as usize;
+                        let tx2 = (tex_x - 0.5)*(tex_x - 0.5);
+                        let d2 = tx2 + ty2;
                         let s = sprite_rd[sprite_y * sprite_width_u + sprite_x];
                         if s[3] > 8 {
                             rd[y * rw + x] =
@@ -152,6 +170,8 @@ impl Sprites {
                                     (s[2] as f32 * fog_f32) as u8,
                                     (s[3] as f32 * fog_f32) as u8
                                 ];
+                        } else if d2 > shield_start2 && d2 <= shield_end2 {
+                            rd[y * rw + x] = shield_color;
                         }
 
                         tex_x += tex_delta_x;

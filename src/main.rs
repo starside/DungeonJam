@@ -21,7 +21,7 @@ use crate::combat::{Collision, CollisionType};
 use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType};
+use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp};
 use crate::mob::MagicColor::{Black, White};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
@@ -419,12 +419,13 @@ async fn main() {
                     let m = m.borrow();
                     match &m.mob_type {
                         MobType::Monster(monster) => {
-                            let monster_scaling = DVec3::from((0.8, 0.8, 0.0));
-                            sprite_manager.add_sprite(m.pos, 0 as SpriteType, monster_scaling)
+                            let shields = m.hp / monster_hp;
+                            let monster_scaling = DVec4::new(0.8, 0.8, 0.0, shields);
+                            sprite_manager.add_sprite(m.pos, (0, m.color), monster_scaling)
                         }
                         MobType::Bullet => {
-                            let bullet_scaling = DVec3::from((0.1, 0.1, 0.0));
-                            sprite_manager.add_sprite(m.pos, 1 as SpriteType, bullet_scaling)
+                            let bullet_scaling = DVec4::new(0.1, 0.1, 0.0, 0.0);
+                            sprite_manager.add_sprite(m.pos, (1, m.color), bullet_scaling)
                         }
                     }
                 }
