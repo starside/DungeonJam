@@ -12,16 +12,24 @@ type AliveDead = bool;
 
 pub const monster_hp:f64 = 100.0;
 const monster_move_cooldown: f64 = 1.0;
-const monster_color_change_cooldown: f64 = 1.0;
+const monster_attack_cooldown: f64 = 2.0;
+const monster_color_change_cooldown: f64 = 4.0;
 
-const monster_attack_cooldown: f64 = 1.0;
-
-const monster_line_of_sight: f64 = 8.0;
+const monster_line_of_sight: f64 = 12.0;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
     White,
     Black
+}
+
+impl MagicColor {
+    pub fn get_opposite(&self) -> Self {
+        match self {
+            MagicColor::White => {MagicColor::Black}
+            MagicColor::Black => {MagicColor::White}
+        }
+    }
 }
 
 pub struct MonsterState{
@@ -41,8 +49,16 @@ impl MonsterState {
         self.last_attack_time == 0.0
     }
 
+    pub fn can_change_color(&self) -> bool {
+        self.last_color_change_time == 0.0
+    }
+
     pub fn start_attack_cooldown(&mut self) {
         self.last_attack_time = monster_attack_cooldown;
+    }
+
+    pub fn start_color_change_cooldown(&mut self) {
+        self.last_color_change_time = monster_color_change_cooldown;
     }
 }
 
@@ -84,6 +100,10 @@ impl MobData {
         } else {
             None
         }
+    }
+
+    pub fn set_color(&mut self, color: MagicColor) {
+        self.color = color;
     }
 }
 

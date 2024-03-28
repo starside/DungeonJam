@@ -12,20 +12,18 @@ mod mob;
 mod combat;
 
 use std::fmt::Pointer;
-use std::path::{Path, PathBuf};
 use macroquad::color;
 use macroquad::math::f64;
-use macroquad::miniquad::{start, window};
+use macroquad::miniquad::{window};
 use macroquad::prelude::*;
-use crate::combat::{Collision, CollisionType};
+use crate::combat::{Collision};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
-use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp, MonsterState};
+use crate::level::{Level, world_space_centered_coord, apply_boundary_conditions_f64};
+use crate::mob::{MagicColor,mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp};
 use crate::mob::MagicColor::{Black, White};
-use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
+use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
-use crate::sprites::SpriteType;
 
 enum GameState {
     Debug,
@@ -348,7 +346,7 @@ async fn main() {
     let mut mana_color: MagicColor = White;
     let player_max_hp: f64 = 639.0;
     let mut player_hp:f64 = player_max_hp;
-    let fire_cooldown = 0.5;
+    let fire_cooldown = 1.0;
 
     // Level editor
     let mut level_editor = level::LevelEditor::new();
@@ -439,19 +437,55 @@ async fn main() {
 
                 // Animate mobs
                 for m in mobs.mob_list.iter() {
-                    let (is_monster, can_attack) = {
+                    let (is_monster, can_attack, can_change_color) = {
                         let mob_type = &mut m.borrow_mut();
                         match &mut mob_type.mob_type {
                             MobType::Monster(monster) => {
                                 monster.update(last_frame_time);
-                                (true, monster.can_attack())
+                                (true, monster.can_attack(), monster.can_change_color())
                             }
                             MobType::Bullet => {
                                 move_bullets(mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
-                                (false,false)
+                                (false,false,false)
                             }
                         }
                     };
+
+                    // Change the enemy color if we can and are the same as the player
+                    let mut change_color: Option<MagicColor> = None;
+                    if can_change_color {
+                        let mob_type = &m.borrow();
+                        match &mob_type.mob_type {
+                            MobType::Monster(monster) => {
+                                if mana_color == mob_type.color {
+                                    if can_attack {
+                                        change_color = Some(mob_type.color.get_opposite());
+                                    }
+                                }
+                            }
+                            MobType::Bullet => {}
+                        }
+                    }
+
+                    if let Some(new_color) = change_color {
+                        let mob_type = &mut m.borrow_mut();
+                        match &mut mob_type.mob_type {
+                            MobType::Monster(_) => {
+                                mob_type.color = new_color;
+                            }
+                            MobType::Bullet => {}
+                        }
+                    }
+
+                    if change_color.is_some() {
+                        let mob_type = &mut m.borrow_mut();
+                        match &mut mob_type.mob_type {
+                            MobType::Monster(monster) => {
+                                monster.start_color_change_cooldown();
+                            }
+                            MobType::Bullet => {}
+                        }
+                    }
 
                     let mut fire: Option<(DVec2, DVec2, MagicColor)> = None;
                     if can_attack {
