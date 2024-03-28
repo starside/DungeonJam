@@ -7,7 +7,9 @@ use crate::level::Level;
 use crate::mob::MagicColor::White;
 type AliveDead = bool;
 
-#[derive(Copy, Clone, Debug)]
+pub const monster_hp:f64 = 100.0;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
     White,
     Black
@@ -25,6 +27,7 @@ pub enum MobType {
 }
 pub struct MobData {
     pub is_alive: AliveDead,
+    pub hp: f64,
     pub moving: Option<(DVec2, DVec2, f64)>, // start coord, end coord, lerp
     pub move_speed: f64,
     pub pos: DVec2,
@@ -71,12 +74,17 @@ impl Mobs {
     }
 
     pub fn delete_dead_mobs(&mut self, mob_grid: &mut Grid2D<MobId>) {
-        let mut dead_mobs: Vec<usize> = Vec::with_capacity(self.mob_list.len());
+        let mut dead_mobs: Vec<usize> = Vec::new(); // TODO: create outside game loop
         for (i, mob) in self.mob_list.iter().enumerate() {
             let mob = mob.borrow();
             if !mob.is_alive {
                 dead_mobs.push(i);
-                mob_grid.set_cell_at_grid_coords_int(mob.pos.as_ivec2(), MobId::NoMob);
+                match  &mob.mob_type {
+                    MobType::Monster(_) => {
+                        mob_grid.set_cell_at_grid_coords_int(mob.pos.as_ivec2(), MobId::NoMob);
+                    }
+                    MobType::Bullet => {}
+                }
             }
         }
         dead_mobs.sort();
@@ -94,6 +102,7 @@ impl Mobs {
 
                     let mob = MobData {
                         is_alive: true,
+                        hp: monster_hp,
                         moving: None,
                         move_speed: float_speed,
                         pos: real_pos,
@@ -102,7 +111,7 @@ impl Mobs {
                             MonsterState {
                                 last_move_time: 0.0,
                                 last_attack_time: 0.0,
-                                last_color_change_time: 0.0
+                                last_color_change_time: 0.0,
                             }
                         )
                     };
@@ -119,13 +128,14 @@ impl Mobs {
     }
 
     pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, color: MagicColor) -> usize {
-        let float_speed = 4.0; // In world coordinates per second
-        let max_lifetime = 6.0;
+        let float_speed = 2.0; // In world coordinates per second
+        let max_lifetime = 5.0;
         let dir_vec = dir.normalize();
         let end_pos = float_speed*max_lifetime*dir_vec + pos;
 
         let mob = MobData {
             is_alive: true,
+            hp: 1.0,
             moving: Some((pos, end_pos, 0.0)),
             move_speed: float_speed,
             pos,

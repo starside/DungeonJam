@@ -276,6 +276,7 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
                     collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), bullet.color));
                 }
                 MobId::Player => {
+                    println!("Player hit by bullet of color {:?}", bullet.color);
                     collisions.push(Collision::new_with_bullet(MobId::Player, bullet.color));
                     bullet.is_alive = false;
                 }
@@ -432,21 +433,7 @@ async fn main() {
 
                 // Handle collisions
                 for c in collisions.iter() {
-                    match &c.collision_type {
-                        CollisionType::Bullet(mob, bullet_color) => {
-                            match mob {
-                                MobId::NoMob => {}
-                                MobId::Mob(x) => {
-                                    let m = &mut x.borrow_mut();
-                                    m.is_alive = false;
-                                    println!("Hit mob {} with color {:?}", m.pos, bullet_color);
-                                }
-                                MobId::Player => {
-                                    println!("Hit player");
-                                }
-                            }
-                        }
-                    }
+                    c.damage_target(&mut player_hp, player_max_hp, mana_color);
                 }
                 collisions.clear();
 
