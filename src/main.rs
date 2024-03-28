@@ -44,6 +44,7 @@ struct PlayerState {
     last_key_pressed: Option<KeyCode>,
     mode: PlayerMode,
     look_rotation: f64,
+    fire_cooldown: f64,
 
     new_player_pos: Option<(i32, i32)>,
     lerp: f64
@@ -78,7 +79,8 @@ impl PlayerState {
                      player_pos: &PlayerPosition,
                      level: &Level,
                      mob_grid: &Grid2D<MobId>,
-                     mana_color: &mut MagicColor) -> PlayerMode {
+                     mana_color: &mut MagicColor,
+                     fire_cooldown: f64) -> PlayerMode {
         let player_pos_ivec = player_pos.get_pos();
 
         self.new_player_pos = None;
@@ -148,12 +150,15 @@ impl PlayerState {
                         }
                     }
                     KeyCode::Space => { // attack
-                        let shoot_dir = calculate_view_dir(self.look_rotation, *player_facing).normalize();
-                        let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
-                        let shoot_pos =
-                            ppos + 0.25*shoot_dir +
-                            ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * shoot_dir); // start out of player room
-                        mobs.new_bullet(shoot_pos, shoot_dir, *mana_color);
+                        if self.fire_cooldown == 0.0 {
+                            self.fire_cooldown = fire_cooldown;
+                            let shoot_dir = calculate_view_dir(self.look_rotation, *player_facing).normalize();
+                            let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
+                            let shoot_pos =
+                                ppos + 0.25*shoot_dir +
+                                    ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * shoot_dir); // start out of player room
+                            mobs.new_bullet(shoot_pos, shoot_dir, *mana_color);
+                        }
                         Idle
                     }
                     KeyCode::Left => {
@@ -338,12 +343,13 @@ async fn main() {
     let mut mana_color: MagicColor = White;
     let player_max_hp: f64 = 639.0;
     let mut player_hp:f64 = player_max_hp;
+    let fire_cooldown = 0.5;
 
     // Level editor
     let mut level_editor = level::LevelEditor::new();
 
     let mut game_state = GameState::LevelEditor;
-    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0};
+    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0, fire_cooldown: 0.0};
 
     // Array to store collisions
     let mut collisions: Vec<Collision> = Vec::with_capacity(16);
@@ -351,6 +357,7 @@ async fn main() {
     loop {
         let screen_size = window::screen_size();
         clear_background(BLACK.into());
+        let last_frame_time = get_frame_time() as f64; // Check if game only calls once per frame
 
         // Handle player view
         let mut pos = world_space_centered_coord(player_pos.get_pos_ituple(), 0.0, -0.0);
@@ -372,10 +379,13 @@ async fn main() {
                 let last_key_pressed = get_last_key_pressed();
                 player_state.last_key_pressed = last_key_pressed;
 
+                // Cooldown player attack
+                player_state.fire_cooldown = player_state.fire_cooldown.clamp(0.0, fire_cooldown);
+
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
-                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world, &mob_grid, &mut mana_color)
+                        player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world, &mob_grid, &mut mana_color, fire_cooldown)
                     }
                     Moving => {
                         player_state.do_moving_state(&mut player_pos, &mut pos,  &mut mob_grid, &mut world)
@@ -420,7 +430,6 @@ async fn main() {
                 }
 
                 // Animate mobs
-                let last_frame_time = get_frame_time() as f64; // Check if game only calls once per frame
                 for m in mobs.mob_list.iter() {
                     let mut mob_type = m.borrow_mut();
                     match mob_type.mob_type {
@@ -466,6 +475,9 @@ async fn main() {
                 let mana_string = format!("Mana type: {}", mana_color_string);
                 draw_text(health_string.as_str(), font_size*0.1, font_y_spacing, font_size, ui_color);
                 draw_text(mana_string.as_str(), font_size*0.1, 2.0*(font_y_spacing+font_y_padding), font_size, ui_color);
+
+                // Decrease weapon cooldown
+                player_state.fire_cooldown -= last_frame_time;
             }
 
             GameState::LevelEditor => {
