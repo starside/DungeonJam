@@ -2,6 +2,7 @@ use macroquad::math::{DVec2, IVec2};
 use macroquad::prelude::Vec2;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use crate::level::apply_boundary_conditions_i32;
 use crate::mob::MobId;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -59,6 +60,8 @@ impl<T: Serialize + DeserializeOwned + Default> Grid2D<T>{
         if prev.is_none() {
             return None;
         }
+
+        let pos= apply_boundary_conditions_i32(pos, self.get_size());
 
         let x= pos.x as usize;
         let y = pos.y as usize;

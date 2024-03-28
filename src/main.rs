@@ -11,6 +11,9 @@ mod image;
 mod mob;
 mod combat;
 
+extern crate rand;
+use rand::Rng;
+
 use std::fmt::Pointer;
 use macroquad::color;
 use macroquad::math::f64;
@@ -20,9 +23,9 @@ use crate::combat::{Collision};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
 use crate::level::{Level, world_space_centered_coord, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor,mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp};
+use crate::mob::{MagicColor,mob_at_cell, MobData, MobId, Mobs, MobType, MONSTER_HP};
 use crate::mob::MagicColor::{Black, White};
-use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
+use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, is_wall, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
 
 enum GameState {
@@ -423,7 +426,7 @@ async fn main() {
                     let m = m.borrow();
                     match &m.mob_type {
                         MobType::Monster(monster) => {
-                            let shields = m.hp / monster_hp;
+                            let shields = m.hp / MONSTER_HP;
                             let monster_scaling = DVec4::new(0.8, 0.8, 0.0, shields);
                             sprite_manager.add_sprite(m.pos, (0, m.color), monster_scaling)
                         }
@@ -437,19 +440,51 @@ async fn main() {
 
                 // Animate mobs
                 for m in mobs.mob_list.iter() {
-                    let (is_monster, can_attack, can_change_color) = {
+                    let (is_monster, mut can_attack, can_change_color, mut can_move) = {
                         let mob_type = &mut m.borrow_mut();
                         match &mut mob_type.mob_type {
                             MobType::Monster(monster) => {
                                 monster.update(last_frame_time);
-                                (true, monster.can_attack(), monster.can_change_color())
+                                (true, monster.can_attack(), monster.can_change_color(), monster.can_move())
                             }
                             MobType::Bullet => {
                                 move_bullets(mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
-                                (false,false,false)
+                                (false,false,false,false)
                             }
                         }
                     };
+
+                    if can_move && can_attack { // decide on one or the other
+                        can_move = rand::random();
+                        can_attack = !can_move;
+                    }
+
+                    if is_monster && can_move {
+                        let mob_type = &mut m.borrow_mut();
+                        let mob_pos = mob_type.pos.as_ivec2();
+                        let dv:[(i32, i32);4] = [(-1, -1), (-1, 1), (1, 1), (1, -1)];
+                        let mut room_choices: Vec<IVec2> = Vec::new();
+                        for v in dv {
+                            let v = IVec2::from(v) + mob_pos;
+                            if is_room_occupiable(v, &mob_grid) && !is_wall(v, &world) {
+                                room_choices.push(v);
+                            }
+                        }
+                        if !room_choices.is_empty() {
+                            let random_room:usize = rand::thread_rng().gen_range(0..room_choices.len());
+                            let new_room = room_choices[random_room];
+                            mob_type.pos = new_room.as_dvec2() + DVec2::new(0.5, 0.5); // Set new mob pos
+                            let old_mobid = mob_grid.get_cell_at_grid_coords_int(mob_pos).unwrap().clone();
+                            mob_grid.set_cell_at_grid_coords_int(new_room, old_mobid);
+                            mob_grid.set_cell_at_grid_coords_int(mob_pos, MobId::NoMob);
+                            match &mut mob_type.mob_type {
+                                MobType::Monster(x) => {
+                                    x.start_move_cooldown();
+                                }
+                                MobType::Bullet => {}
+                            }
+                        }
+                    }
 
                     // Change the enemy color if we can and are the same as the player
                     let mut change_color: Option<MagicColor> = None;

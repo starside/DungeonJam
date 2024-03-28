@@ -161,7 +161,7 @@ pub fn is_room_occupiable(pos: IVec2, mob_grid: &Grid2D<MobId>) -> bool {
             match x {
                 MobId::NoMob => {true}
                 MobId::Mob(_) => {false}
-                MobId::Player => {true}
+                MobId::Player => {false} // TODO:  I think this is ok
             }
         }
     }

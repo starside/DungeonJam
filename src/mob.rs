@@ -10,12 +10,12 @@ use crate::raycaster::{cast_ray, HitSide};
 
 type AliveDead = bool;
 
-pub const monster_hp:f64 = 100.0;
-const monster_move_cooldown: f64 = 1.0;
-const monster_attack_cooldown: f64 = 2.0;
-const monster_color_change_cooldown: f64 = 4.0;
+pub const MONSTER_HP:f64 = 100.0;
+const MONSTER_MOVE_COOLDOWN: f64 = 4.0;
+const MONSTER_ATTACK_COOLDOWN: f64 = 2.0;
+const MONSTER_COLOR_CHANGE_COOLDOWN: f64 = 4.0;
 
-const monster_line_of_sight: f64 = 12.0;
+const MONSTER_LINE_OF_SIGHT: f64 = 12.0;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
@@ -40,9 +40,9 @@ pub struct MonsterState{
 
 impl MonsterState {
     pub fn update(&mut self, last_frame_time: f64) {
-        self.last_move_time = (self.last_move_time - last_frame_time).clamp(0.0, monster_move_cooldown);
-        self.last_attack_time = (self.last_attack_time - last_frame_time).clamp(0.0, monster_attack_cooldown);
-        self.last_color_change_time = (self.last_color_change_time - last_frame_time).clamp(0.0, monster_color_change_cooldown);
+        self.last_move_time = (self.last_move_time - last_frame_time).clamp(0.0, MONSTER_MOVE_COOLDOWN);
+        self.last_attack_time = (self.last_attack_time - last_frame_time).clamp(0.0, MONSTER_ATTACK_COOLDOWN);
+        self.last_color_change_time = (self.last_color_change_time - last_frame_time).clamp(0.0, MONSTER_COLOR_CHANGE_COOLDOWN);
     }
 
     pub fn can_attack(&self) -> bool {
@@ -53,12 +53,20 @@ impl MonsterState {
         self.last_color_change_time == 0.0
     }
 
+    pub fn can_move(&self) -> bool {
+        self.last_move_time == 0.0
+    }
+
     pub fn start_attack_cooldown(&mut self) {
-        self.last_attack_time = monster_attack_cooldown;
+        self.last_attack_time = MONSTER_ATTACK_COOLDOWN;
     }
 
     pub fn start_color_change_cooldown(&mut self) {
-        self.last_color_change_time = monster_color_change_cooldown;
+        self.last_color_change_time = MONSTER_COLOR_CHANGE_COOLDOWN;
+    }
+
+    pub fn start_move_cooldown(&mut self) {
+        self.last_move_time = MONSTER_MOVE_COOLDOWN;
     }
 }
 
@@ -81,7 +89,7 @@ impl MobData {
         where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell> {
         let sight_vector = target - self.pos;
         let dir = sight_vector.normalize();
-        let (_, hit, _, coord) = cast_ray(grid, &self.pos, &dir, monster_line_of_sight);
+        let (_, hit, _, coord) = cast_ray(grid, &self.pos, &dir, MONSTER_LINE_OF_SIGHT);
         let hit_coord = coord.as_dvec2() + DVec2::new(0.5, 0.5); // Find center of coordinate hit
         let hit_distance= hit_coord.distance(self.pos);
         let sight_distance = sight_vector.length();
@@ -184,16 +192,16 @@ impl Mobs {
 
                     let mob = MobData {
                         is_alive: true,
-                        hp: monster_hp,
+                        hp: MONSTER_HP,
                         moving: None,
                         move_speed: float_speed,
                         pos: real_pos,
                         color,
                         mob_type: MobType::Monster(
                             MonsterState {
-                                last_move_time: monster_move_cooldown,
-                                last_attack_time: monster_attack_cooldown,
-                                last_color_change_time: monster_color_change_cooldown,
+                                last_move_time: MONSTER_MOVE_COOLDOWN,
+                                last_attack_time: MONSTER_ATTACK_COOLDOWN,
+                                last_color_change_time: MONSTER_COLOR_CHANGE_COOLDOWN,
                             }
                         )
                     };

@@ -41,7 +41,7 @@ impl Collision {
                         } else {
                             m.hp += player_to_monster_damage/2.0;
                         }
-                        m.hp = m.hp.clamp(0.0, mob::monster_hp);
+                        m.hp = m.hp.clamp(0.0, mob::MONSTER_HP);
                         println!("Monster hp is {}", m.hp);
                         if m.hp <= 0.0 {
                             m.is_alive = false;
