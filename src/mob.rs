@@ -5,9 +5,15 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
 use crate::level::Level;
 use crate::mob::MagicColor::White;
+use crate::raycaster::cast_ray;
+
 type AliveDead = bool;
 
 pub const monster_hp:f64 = 100.0;
+const monster_move_cooldown: f64 = 1.0;
+const monster_color_change_cooldown: f64 = 1.0;
+
+const monster_attack_cooldown: f64 = 1.0;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
@@ -19,6 +25,22 @@ pub struct MonsterState{
     last_move_time: f64, // time since last move completed
     last_attack_time: f64,
     last_color_change_time: f64,
+}
+
+impl MonsterState {
+    pub fn update(&mut self, last_frame_time: f64) {
+        self.last_move_time = (self.last_move_time - last_frame_time).clamp(0.0, monster_move_cooldown);
+        self.last_attack_time = (self.last_attack_time - last_frame_time).clamp(0.0, monster_attack_cooldown);
+        self.last_color_change_time = (self.last_color_change_time - last_frame_time).clamp(0.0, monster_color_change_cooldown);
+    }
+
+    pub fn can_attack(&self) -> bool {
+        self.last_attack_time == 0.0
+    }
+
+    pub fn start_attack_cooldown(&mut self) {
+        self.last_attack_time = monster_attack_cooldown;
+    }
 }
 
 pub enum MobType {
@@ -33,6 +55,14 @@ pub struct MobData {
     pub pos: DVec2,
     pub mob_type: MobType,
     pub color: MagicColor
+}
+
+impl MobData {
+    pub fn has_line_of_sight(&self, target: DVec2, grid: &Grid2D<RayGridCell>) {
+        let dir = (target - self.pos).normalize();
+        let (_, hit_type, _, hit_coord) = cast_ray(grid, &self.pos, &dir, 10.0);
+        println!("Hit type {:?}, hit coord {}", hit_type, hit_coord);
+    }
 }
 
 pub type Mob = Rc<RefCell<Box<MobData>>>;
@@ -109,9 +139,9 @@ impl Mobs {
                         color: White,
                         mob_type: MobType::Monster(
                             MonsterState {
-                                last_move_time: 0.0,
-                                last_attack_time: 0.0,
-                                last_color_change_time: 0.0,
+                                last_move_time: monster_move_cooldown,
+                                last_attack_time: monster_attack_cooldown,
+                                last_color_change_time: monster_color_change_cooldown,
                             }
                         )
                     };

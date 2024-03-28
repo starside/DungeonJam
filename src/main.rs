@@ -21,7 +21,7 @@ use crate::combat::{Collision, CollisionType};
 use crate::grid2d::{Grid2D, GridCellType};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
-use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp};
+use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp, MonsterState};
 use crate::mob::MagicColor::{Black, White};
 use crate::player_movement::{can_climb_down, can_climb_up, can_stem, can_straddle_drop, has_ceiling, has_floor, is_room_occupiable, is_supported_position, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
@@ -443,7 +443,13 @@ async fn main() {
                 for m in mobs.mob_list.iter() {
                     let mut mob_type = m.borrow_mut();
                     match mob_type.mob_type {
-                        MobType::Monster(_) => {}
+                        MobType::Monster(ref mut monster) => {
+                            monster.update(last_frame_time);
+                            if monster.can_attack() {
+                                monster.start_attack_cooldown();
+                                mob_type.has_line_of_sight(player_pos.get_pos_dvec(), &world.grid);
+                            }
+                        }
                         MobType::Bullet => {
                             move_bullets(&mut mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
                         }

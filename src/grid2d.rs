@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 use crate::mob::MobId;
 
-#[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum GridCellType {
     #[default]
     Empty,
