@@ -18,7 +18,7 @@ use macroquad::math::f64;
 use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
 use crate::combat::{Collision, CollisionType};
-use crate::grid2d::{Grid2D, GridCellType};
+use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
 use crate::level::{Level, icoords_to_dvec2, ucoords_to_icoords, world_space_centered_coord, ucoords_to_dvec2, apply_boundary_conditions_f64};
 use crate::mob::{MagicColor, Mob, mob_at_cell, MobData, MobId, Mobs, MobType, monster_hp, MonsterState};

@@ -1,8 +1,8 @@
+use crate::WallGridCell;
 use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, IVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
-use crate::grid2d::GridCellType;
 use crate::level::Level;
 use crate::raycaster::{cast_ray, HitSide};
 
@@ -76,8 +76,8 @@ impl FirstPersonViewer {
 
             // Store z buffer
             match hit_type {
-                GridCellType::Empty => {self.z_buffer[y] = f64::INFINITY}
-                GridCellType::Wall => {self.z_buffer[y] = perp_wall_dist}
+                WallGridCell::Empty => {self.z_buffer[y] = f64::INFINITY}
+                WallGridCell::Wall => {self.z_buffer[y] = perp_wall_dist}
             }
 
             let dist_wall = perp_wall_dist;
@@ -86,8 +86,8 @@ impl FirstPersonViewer {
             let fog = fog_factor(perp_wall_dist, max_ray_distance) as f32;
             let color =
                 match hit_type {
-                    GridCellType::Empty => { BLACK }
-                    GridCellType::Wall => {
+                    WallGridCell::Empty => { BLACK }
+                    WallGridCell::Wall => {
                         match hit_side {
                             HitSide::Horizontal => {
                                 if ray_dir.y > 0.0 {

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use macroquad::math::{DVec2, IVec2};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
+use crate::grid2d::{Grid2D, WallGridCell};
 use crate::level::Level;
 use crate::mob::MagicColor::White;
 use crate::raycaster::cast_ray;
@@ -58,7 +58,7 @@ pub struct MobData {
 }
 
 impl MobData {
-    pub fn has_line_of_sight(&self, target: DVec2, grid: &Grid2D<RayGridCell>) {
+    pub fn has_line_of_sight(&self, target: DVec2, grid: &Grid2D<WallGridCell>) {
         let dir = (target - self.pos).normalize();
         let (_, hit_type, _, hit_coord) = cast_ray(grid, &self.pos, &dir, 10.0);
         println!("Hit type {:?}, hit coord {}", hit_type, hit_coord);

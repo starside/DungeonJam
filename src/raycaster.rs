@@ -1,5 +1,5 @@
 use macroquad::math::{DVec2, IVec2};
-use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
+use crate::grid2d::{Grid2D, WallGridCell};
 
 #[derive(PartialEq)]
 pub enum HitSide {
@@ -9,8 +9,8 @@ pub enum HitSide {
 
 // start amd end are in grid coordinates, assuming each cell has size 1,
 // so start (3.5, 14.7) would be inside cells (3, 14)
-pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2, max_ray_distance: f64) ->
-                                            (f64, GridCellType, HitSide, IVec2) {
+pub fn cast_ray(grid: &Grid2D<WallGridCell>, start: &DVec2, ray_dir: &DVec2, max_ray_distance: f64) ->
+                                            (f64, WallGridCell, HitSide, IVec2) {
     let mut map_x = start.x as i32;
     let mut map_y = start.y as i32;
 
@@ -46,7 +46,7 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2, max_
 
     // Look for final collision
     let mut side = HitSide::Horizontal;
-    let mut cell_hit_type = GridCellType::Empty;
+    let mut cell_hit_type = WallGridCell::default();
 
     while !hit {
         if side_dist_x < side_dist_y {
@@ -63,11 +63,11 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2, max_
         match cell {
             None => {hit = true;}
             Some(x) => {
-                match &x.cell_type {
-                    GridCellType::Empty => {}
-                    GridCellType::Wall => {
+                match x {
+                    WallGridCell::Empty => {}
+                    WallGridCell::Wall => {
                         hit = true;
-                        cell_hit_type = x.cell_type;
+                        cell_hit_type = *x;
                     }
                 }
             }
@@ -75,7 +75,7 @@ pub fn cast_ray(grid: &Grid2D<RayGridCell>, start: &DVec2, ray_dir: &DVec2, max_
 
         let current_position = side_dist_x.min(side_dist_y) * *ray_dir;
         if current_position.length() >= max_ray_distance {
-            cell_hit_type = GridCellType::Empty;
+            cell_hit_type = WallGridCell::Empty;
             break;
         }
     }

@@ -1,5 +1,5 @@
 use macroquad::math::{DVec2, IVec2};
-use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
+use crate::grid2d::{Grid2D, WallGridCell};
 use crate::level::Level;
 use crate::mob::MobId;
 use crate::PlayerMode::Idle;
@@ -61,9 +61,9 @@ pub fn has_floor(pos: IVec2, level: &Level ) -> Option<IVec2> {
     match cell {
         None => {Some(down_pos)}
         Some(x) => {
-            match x.cell_type {
-                GridCellType::Empty => {None}
-                GridCellType::Wall => {Some(down_pos)}
+            match x {
+                WallGridCell::Empty => {None}
+                WallGridCell::Wall => {Some(down_pos)}
             }
         }
     }
@@ -75,9 +75,9 @@ pub fn has_ceiling(pos: IVec2, level: &Level ) -> bool {
     match cell {
         None => {true}
         Some(x) => {
-            match x.cell_type {
-                GridCellType::Empty => {false}
-                GridCellType::Wall => {true}
+            match x {
+                WallGridCell::Empty => {false}
+                WallGridCell::Wall => {true}
             }
         }
     }
@@ -86,10 +86,10 @@ pub fn has_ceiling(pos: IVec2, level: &Level ) -> bool {
 pub fn can_stem(pos: IVec2, level: &Level) -> bool {
     let left_pos = pos + IVec2::from((-1, 0));
     let right_pos = pos + IVec2::from((1, 0));
-    let left_cell = level.grid.get_cell_at_grid_coords_int(left_pos).unwrap().cell_type;
-    let right_cell = level.grid.get_cell_at_grid_coords_int(right_pos).unwrap().cell_type;
+    let left_cell = *level.grid.get_cell_at_grid_coords_int(left_pos).unwrap();
+    let right_cell = *level.grid.get_cell_at_grid_coords_int(right_pos).unwrap();
 
-    if left_cell == GridCellType::Wall && right_cell == GridCellType::Wall {
+    if left_cell == WallGridCell::Wall && right_cell == WallGridCell::Wall {
         true
     } else {
         false
@@ -134,9 +134,9 @@ pub fn is_supported_position(pos: IVec2, level: &Level) -> bool {
 
 pub fn is_wall(pos: IVec2, level: &Level) -> bool {
     if let Some(x) = level.grid.get_cell_at_grid_coords_int(pos) {
-        match x.cell_type {
-            GridCellType::Empty => {false}
-            GridCellType::Wall => {true}
+        match x {
+            WallGridCell::Empty => {false}
+            WallGridCell::Wall => {true}
         }
     } else {
         true

@@ -5,15 +5,10 @@ use serde::de::DeserializeOwned;
 use crate::mob::MobId;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub enum GridCellType {
+pub enum WallGridCell {
     #[default]
     Empty,
     Wall
-}
-
-#[derive(Serialize, Deserialize, Default)]
-pub struct RayGridCell {
-    pub cell_type: GridCellType
 }
 
 #[derive(Serialize, Deserialize)]

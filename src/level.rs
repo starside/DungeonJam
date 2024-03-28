@@ -7,7 +7,7 @@ use macroquad::prelude::{clear_background, DVec2};
 use macroquad::shapes::draw_circle;
 use serde::{Deserialize, Serialize};
 use crate::{GameState, grid_viewer, image};
-use crate::grid2d::{Grid2D, GridCellType, RayGridCell};
+use crate::grid2d::{Grid2D, WallGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
 use crate::mob::{MobId, Mobs};
 use crate::sprites::{Sprites, SpriteType};
@@ -15,7 +15,7 @@ use crate::sprites::{Sprites, SpriteType};
 #[derive(Serialize, Deserialize)]
 pub struct Level {
     pub player_start: (usize, usize),
-    pub grid: Grid2D<RayGridCell>,
+    pub grid: Grid2D<WallGridCell>,
     pub mob_list: Vec<(i32, i32)>, // For now assume monster type
     filename: String
 }
@@ -175,9 +175,9 @@ impl LevelEditor {
                    sprite_manager: &mut Sprites,
                    screen_size: (f32, f32), pos: DVec2, dir: DVec2) -> (Option<(DVec2, DVec2)>, Option<GameState>) {
         let mut new_game_state: Option<GameState> = None;
-        let brush_table: [GridCellType; 2] = [
-            GridCellType::Empty,
-            GridCellType::Wall
+        let brush_table: [WallGridCell; 2] = [
+            WallGridCell::Empty,
+            WallGridCell::Wall
         ];
         let current_brush = brush_table[self.current_brush_idx];
 
@@ -214,7 +214,7 @@ impl LevelEditor {
         }
 
         if is_mouse_button_down(MouseButton::Left){
-            world.grid.set_cell_at_grid_coords_int(mouse_world_pos.as_ivec2(), RayGridCell{cell_type: current_brush});
+            world.grid.set_cell_at_grid_coords_int(mouse_world_pos.as_ivec2(), current_brush);
         }
 
         match get_last_key_pressed() {
