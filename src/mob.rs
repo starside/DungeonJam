@@ -16,7 +16,7 @@ const monster_color_change_cooldown: f64 = 1.0;
 
 const monster_attack_cooldown: f64 = 1.0;
 
-const monster_line_of_sight: f64 = 4.0;
+const monster_line_of_sight: f64 = 8.0;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
@@ -193,6 +193,11 @@ impl Mobs {
         let float_speed = 2.0; // In world coordinates per second
         let max_lifetime = 5.0;
         let dir_vec = dir.normalize();
+
+        let pos =
+            pos + 0.25*dir_vec +
+                ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * dir_vec); // start out of player room
+
         let end_pos = float_speed*max_lifetime*dir_vec + pos;
 
         let mob = MobData {

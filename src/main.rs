@@ -154,10 +154,7 @@ impl PlayerState {
                             self.fire_cooldown = fire_cooldown;
                             let shoot_dir = calculate_view_dir(self.look_rotation, *player_facing).normalize();
                             let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
-                            let shoot_pos =
-                                ppos + 0.25*shoot_dir +
-                                    ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * shoot_dir); // start out of player room
-                            mobs.new_bullet(shoot_pos, shoot_dir, *mana_color);
+                            mobs.new_bullet(ppos, shoot_dir, *mana_color);
                         }
                         Idle
                     }
@@ -361,6 +358,7 @@ async fn main() {
 
     // Array to store collisions
     let mut collisions: Vec<Collision> = Vec::with_capacity(16);
+    let mut new_bullets: Vec<(DVec2, DVec2)> = Vec::new();
 
     loop {
         let screen_size = window::screen_size();
@@ -448,11 +446,14 @@ async fn main() {
                                 monster.update(last_frame_time);
                                 (true, monster.can_attack())
                             }
-                            MobType::Bullet => {(false,false)}
+                            MobType::Bullet => {
+                                move_bullets(mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
+                                (false,false)
+                            }
                         }
                     };
 
-                    let mut fire = false;
+                    let mut fire: Option<(DVec2, DVec2)> = None;
                     if can_attack {
                         let mob_type = &m.borrow();
                         match &mob_type.mob_type {
@@ -467,7 +468,7 @@ async fn main() {
                                                 MobId::NoMob => {}
                                                 MobId::Mob(_) => {}
                                                 MobId::Player => {
-                                                    fire = true
+                                                    fire = Some((mob_type.pos, (pos - mob_type.pos).normalize()));
                                                 }
                                             }
                                         }
@@ -478,17 +479,27 @@ async fn main() {
                         }
                     }
 
-                    if fire && is_monster {
+                    if fire.is_some() {
                         let mob_type = &mut m.borrow_mut();
                         match &mut mob_type.mob_type {
                             MobType::Monster(monster) => {
-                                println!("Attacking!");
                                 monster.start_attack_cooldown();
                             }
                             MobType::Bullet => {}
                         }
                     }
+
+                    if let Some(x) = fire {
+                        new_bullets.push(x)
+                    }
                 }
+
+                // Create new bullets
+                println!("{:?}", new_bullets);
+                for (pos, dir) in new_bullets.iter() {
+                    mobs.new_bullet(*pos, *dir, White);
+                }
+                new_bullets.clear();
 
                 // Handle collisions
                 for c in collisions.iter() {
