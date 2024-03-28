@@ -13,6 +13,7 @@ mod combat;
 
 use std::fmt::Pointer;
 use std::path::{Path, PathBuf};
+use macroquad::color;
 use macroquad::math::f64;
 use macroquad::miniquad::{start, window};
 use macroquad::prelude::*;
@@ -456,8 +457,8 @@ async fn main() {
 
                 // Show UI
                 let (ui_color, mana_color_string) = match mana_color {
-                    White => {(WHITE, "Light")}
-                    Black => {(BLACK, "Void")}
+                    White => {(color::WHITE, "Light")}
+                    Black => {(color::DARKPURPLE, "Void")}
                 };
                 let font_size = 30.0 * (screen_size.0/800.0);
                 let font_y_spacing = font_size * 0.6;

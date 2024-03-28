@@ -106,8 +106,13 @@ impl FirstPersonViewer {
                 let weight = (current_dist - dist_player) / (dist_wall - dist_player);
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
                 let v = 1.0-current_floor_pos.y as f32 / 64.0;
-                rd[y * rw + x] = Color::new(0.8*v, v, v, 1.0).into();
-                rd[y * rw + (render_width-1) as usize - x ] = Color::new(v, 0.8*v, v, 1.0).into();
+                let (c1, c2) = if dir.x > 0.0 {
+                    (Color::new(0.8*v, v, v, 1.0), Color::new(v, 0.8*v, v, 1.0))
+                } else {
+                    (Color::new(v, 0.8*v, v, 1.0), Color::new(0.8*v, v, v, 1.0))
+                };
+                rd[y * rw + x] = c1.into();
+                rd[y * rw + (render_width-1) as usize - x ] = c2.into();
             }
 
             for x in draw_start..draw_end {
