@@ -300,6 +300,13 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
     }
 }
 
+fn mana_color_srpite_id(magic_color: MagicColor) -> usize {
+    match magic_color {
+        White => {1}
+        Black => {2}
+    }
+}
+
 #[macroquad::main("BasicShapes")]
 async fn main() {
 
@@ -307,7 +314,8 @@ async fn main() {
     let mut sprite_images = ImageLoader::new();
     let sprite_image_files = vec![
         "sprites/Bones_shadow1_1.png".to_string(),
-        "sprites/Pustules_shadow2_2.png".to_string()
+        "sprites/light.png".to_string(),
+        "sprites/dark.png".to_string()
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
@@ -425,7 +433,8 @@ async fn main() {
                         }
                         MobType::Bullet => {
                             let bullet_scaling = DVec4::new(0.1, 0.1, 0.0, 0.0);
-                            sprite_manager.add_sprite(m.pos, (1, m.color), bullet_scaling)
+                            let sprite_type = (mana_color_srpite_id(m.color), m.color);
+                            sprite_manager.add_sprite(m.pos, sprite_type, bullet_scaling)
                         }
                     }
                 }
