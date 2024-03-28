@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::level::Level;
 use crate::mob::MagicColor::White;
-use crate::raycaster::cast_ray;
+use crate::raycaster::{cast_ray, HitSide};
 
 type AliveDead = bool;
 
@@ -15,6 +15,8 @@ const monster_move_cooldown: f64 = 1.0;
 const monster_color_change_cooldown: f64 = 1.0;
 
 const monster_attack_cooldown: f64 = 1.0;
+
+const monster_line_of_sight: f64 = 4.0;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
@@ -59,10 +61,29 @@ pub struct MobData {
 }
 
 impl MobData {
-    pub fn has_line_of_sight<T>(&self, target: DVec2, grid: &Grid2D<T>)
+    pub fn has_line_of_sight<T>(&self, target: DVec2, grid: &Grid2D<T>) -> Option<IVec2>
         where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell> {
-        let dir = (target - self.pos).normalize();
-         cast_ray(grid, &self.pos, &dir, 10.0);
+        let sight_vector = target - self.pos;
+        let dir = sight_vector.normalize();
+        let (_, hit, _, coord) = cast_ray(grid, &self.pos, &dir, monster_line_of_sight);
+        let hit_coord = coord.as_dvec2() + DVec2::new(0.5, 0.5); // Find center of coordinate hit
+        let hit_distance= hit_coord.distance(self.pos);
+        let sight_distance = sight_vector.length();
+
+        let has_los = if hit_distance <= sight_distance {
+            if sight_distance - hit_distance < 0.2 { // fudge factor
+                true
+            } else{
+                false
+            }
+        } else {
+            true
+        };
+        if has_los {
+            Some(coord)
+        } else {
+            None
+        }
     }
 }
 

@@ -346,7 +346,7 @@ async fn main() {
 
     // Translate player starting position to world vector coords.
     // These are the gameplay variables, the others should not be modified directly
-    let mut player_pos = player_movement::PlayerPosition::new(world.player_start);
+    let mut player_pos = player_movement::PlayerPosition::new(world.player_start, &mut mob_grid);
     let mut player_facing: f64 = 1.0;
     let mut mana_color: MagicColor = White;
     let player_max_hp: f64 = 639.0;
@@ -441,20 +441,90 @@ async fn main() {
 
                 // Animate mobs
                 for m in mobs.mob_list.iter() {
-                    let mut mob_type = m.borrow_mut();
-                    match mob_type.mob_type {
-                        MobType::Monster(ref mut monster) => {
+                    let (is_monster, can_attack) = {
+                        let mob_type = &mut m.borrow_mut();
+                        match &mut mob_type.mob_type {
+                            MobType::Monster(monster) => {
+                                monster.update(last_frame_time);
+                                (true, monster.can_attack())
+                            }
+                            MobType::Bullet => {(false,false)}
+                        }
+                    };
+
+                    let mut fire = false;
+                    if can_attack {
+                        let mob_type = &m.borrow();
+                        match &mob_type.mob_type {
+                            MobType::Monster(monster) => {
+                                // Check if line of sight blocked by wall
+                                if let Some(_) = mob_type.has_line_of_sight(pos, &world.grid){
+                                    // Check if another monster blocks line of sight.
+                                    let x = mob_type.has_line_of_sight(pos, &mob_grid);
+                                    if let Some(y) = x {
+                                        if let Some(hit) = mob_grid.get_cell_at_grid_coords_int(y) {
+                                            match hit {
+                                                MobId::NoMob => {}
+                                                MobId::Mob(_) => {}
+                                                MobId::Player => {
+                                                    fire = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            MobType::Bullet => {}
+                        }
+                    }
+
+                    if fire && is_monster {
+                        let mob_type = &mut m.borrow_mut();
+                        match &mut mob_type.mob_type {
+                            MobType::Monster(monster) => {
+                                println!("Attacking!");
+                                monster.start_attack_cooldown();
+                            }
+                            MobType::Bullet => {}
+                        }
+                    }
+
+                    /*let mob_type = &mut m.borrow_mut();
+                    match &mut mob_type.mob_type {
+                        MobType::Monster(monster) => {
                             monster.update(last_frame_time);
                             if monster.can_attack() {
-                                monster.start_attack_cooldown();
-                                mob_type.has_line_of_sight(player_pos.get_pos_dvec(), &world.grid);
-                                mob_type.has_line_of_sight(player_pos.get_pos_dvec(), &mob_grid);
+                                mob_type.has_line_of_sight(pos, &world.grid);
+                                monster.start_attack_cooldown()
                             }
+
+                            /*let mut fire:bool = false; // should we fire?
+                            if monster.can_attack() {
+                                if let Some(_) = mob_type.has_line_of_sight(pos, &world.grid){
+                                    // Check if another monster blocks line of sight.
+                                    let x = mob_type.has_line_of_sight(pos, &mob_grid);
+                                    if let Some(y) = x {
+                                        if let Some(hit) = mob_grid.get_cell_at_grid_coords_int(y) {
+                                            match hit {
+                                                MobId::NoMob => {}
+                                                MobId::Mob(_) => {}
+                                                MobId::Player => {
+                                                    fire = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if fire {
+                                println!("Attacking!");
+                                //monster.start_attack_cooldown();
+                            }*/
                         }
                         MobType::Bullet => {
                             move_bullets(&mut mob_type, last_frame_time, &world, &mob_grid, &mut collisions);
                         }
-                    }
+                    }*/
                 }
 
                 // Handle collisions

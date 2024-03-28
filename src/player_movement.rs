@@ -9,10 +9,14 @@ pub struct PlayerPosition {
 }
 
 impl PlayerPosition {
-    pub fn new(pos: (usize, usize))  -> Self{
-        PlayerPosition {
+    pub fn new(pos: (usize, usize), mob_grid: &mut Grid2D<MobId>)  -> Self{
+        let mut np = PlayerPosition {
             pos: IVec2::from((pos.0 as i32, pos.1 as i32))
+        };
+        if np.set_pos(np.pos, mob_grid).is_err() {
+            panic!("Failed to set initial player position");
         }
+        np
     }
     pub fn get_pos(&self) -> IVec2 {
         self.pos
