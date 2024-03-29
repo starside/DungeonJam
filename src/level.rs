@@ -225,7 +225,7 @@ impl LevelEditor {
             }
         }
 
-        if is_mouse_button_pressed(MouseButton::Middle){
+        if is_mouse_button_pressed(MouseButton::Right){
             self.current_brush_idx = (self.current_brush_idx + 1) % brush_table.len();
         }
 
