@@ -13,8 +13,8 @@ use crate::raycaster::cast_ray;
 type AliveDead = bool;
 
 pub const MONSTER_HP:f64 = 100.0;
-const MONSTER_MOVE_COOLDOWN: f64 = 5.0;
-const MONSTER_ATTACK_COOLDOWN: f64 = 4.0;
+const MONSTER_MOVE_COOLDOWN: f64 = 6.0;
+const MONSTER_ATTACK_COOLDOWN: f64 = 6.0;
 const MONSTER_COLOR_CHANGE_COOLDOWN: f64 = 4.0;
 
 const MONSTER_LINE_OF_SIGHT: f64 = 12.0;
@@ -67,8 +67,8 @@ impl MonsterState {
         self.last_color_change_time = MONSTER_COLOR_CHANGE_COOLDOWN;
     }
 
-    pub fn start_move_cooldown(&mut self) {
-        self.last_move_time = MONSTER_MOVE_COOLDOWN;
+    pub fn start_move_cooldown(&mut self, modifier: f64) {
+        self.last_move_time = MONSTER_MOVE_COOLDOWN * modifier;
     }
 }
 

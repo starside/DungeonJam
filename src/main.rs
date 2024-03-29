@@ -65,7 +65,7 @@ impl PlayerState {
     fn player_look(&mut self) {
         let look_up_max: f64 = 0.9;
         let look_down_max: f64 = -1.14;
-        let look_speed: f64 = 0.5; // Time in seconds to cover range
+        let look_speed: f64 = 1.5; // Time in seconds to cover range
         let look_range: f64 = look_up_max - look_down_max;
         let frame_time = get_frame_time() as f64;
 
@@ -185,6 +185,7 @@ impl PlayerState {
                        player_pos: &mut PlayerPosition,
                        player_world_coord: &mut DVec2,
                        mob_grid: &mut Grid2D<MobId>,
+                       mana_color: &mut MagicColor,
                        level: &Level) -> PlayerMode {
         match self.new_player_pos {
             None => {Idle}
@@ -206,6 +207,11 @@ impl PlayerState {
                     self.new_player_pos = None;
                     Idle
                 } else {
+                    if let Some(x) = get_last_key_pressed(){
+                        if x == KeyCode::Left {
+                            *mana_color = mana_color.get_opposite();
+                        }
+                    }
                     Moving
                 }
             }
@@ -423,7 +429,7 @@ async fn main() {
                         player_state.do_idle_state(&mut mobs, &mut player_facing, &player_pos, &world, &mob_grid, &mut mana_color, fire_cooldown)
                     }
                     Moving => {
-                        player_state.do_moving_state(&mut player_pos, &mut pos,  &mut mob_grid, &mut world)
+                        player_state.do_moving_state(&mut player_pos, &mut pos,  &mut mob_grid, &mut mana_color, &mut world)
                     }
                     Falling => {
                         player_state.do_falling_state(&mut player_pos, &mut pos, &mut mob_grid, &mut world)
@@ -511,9 +517,15 @@ async fn main() {
                             let old_mobid = mob_grid.get_cell_at_grid_coords_int(mob_pos).unwrap().clone();
                             mob_grid.set_cell_at_grid_coords_int(new_room, old_mobid);
                             mob_grid.set_cell_at_grid_coords_int(mob_pos, MobId::NoMob);
+                            let move_speed_modifier =
+                                if mob_type.get_pos().distance(player_pos.get_pos_dvec()) <= 2.0 {
+                                    0.5f64
+                                } else {
+                                    1.0f64
+                                };
                             match &mut mob_type.mob_type {
                                 MobType::Monster(x) => {
-                                    x.start_move_cooldown();
+                                    x.start_move_cooldown(move_speed_modifier);
                                 }
                                 MobType::Bullet => {}
                             }
