@@ -554,16 +554,18 @@ async fn main() {
                         match &mob_type.mob_type {
                             MobType::Monster(monster) => {
                                 // Check if line of sight blocked by wall
-                                if let Some(_) = mob_type.has_line_of_sight(pos, &world.grid){
+                                if let Some((_, dir_wall)) = mob_type.has_line_of_sight_with_bc(pos, &world.grid){
                                     // Check if another monster blocks line of sight.
-                                    let x = mob_type.has_line_of_sight(pos, &mob_grid);
-                                    if let Some(y) = x {
+                                    let x = mob_type.has_line_of_sight_with_bc(pos, &mob_grid);
+                                    if let Some((y, dir)) = x {
                                         if let Some(hit) = mob_grid.get_cell_at_grid_coords_int(y) {
                                             match hit {
                                                 MobId::NoMob => {}
                                                 MobId::Mob(_) => {}
                                                 MobId::Player => {
-                                                    fire = Some((mob_type.pos, (pos - mob_type.pos).normalize(), mob_type.color));
+                                                    if dir.dot(dir_wall) > 0.0 {
+                                                        fire = Some((mob_type.pos, dir.normalize(), mob_type.color));
+                                                    }
                                                 }
                                             }
                                         }

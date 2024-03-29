@@ -1,18 +1,19 @@
 use std::cell::RefCell;
+use std::ops::Neg;
 use std::rc::Rc;
 use macroquad::math::{DVec2, IVec2};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::DeserializeOwned;
 use crate::grid2d::{Grid2D, WallGridCell};
-use crate::level::Level;
+use crate::level::{apply_boundary_conditions_f64, Level, ucoords_to_dvec2};
 use crate::mob::MagicColor::White;
 use crate::raycaster::{cast_ray, HitSide};
 
 type AliveDead = bool;
 
 pub const MONSTER_HP:f64 = 100.0;
-const MONSTER_MOVE_COOLDOWN: f64 = 4.0;
-const MONSTER_ATTACK_COOLDOWN: f64 = 2.0;
+const MONSTER_MOVE_COOLDOWN: f64 = 5.0;
+const MONSTER_ATTACK_COOLDOWN: f64 = 4.0;
 const MONSTER_COLOR_CHANGE_COOLDOWN: f64 = 4.0;
 
 const MONSTER_LINE_OF_SIGHT: f64 = 12.0;
@@ -85,6 +86,50 @@ pub struct MobData {
 }
 
 impl MobData {
+
+    pub fn has_line_of_sight_with_bc<T>(&self, target: DVec2, grid: &Grid2D<T>) -> Option<(IVec2, DVec2)> // hit coord, direction
+        where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell>{
+        let ws = ucoords_to_dvec2(grid.get_size());
+        let target = apply_boundary_conditions_f64(target, grid.get_size());
+        let (right, left) = if self.pos.x < target.x { // target to our right
+            let target_left = DVec2::new((ws.x - target.x).neg(), target.y);
+            ((self.has_line_of_sight(target, grid), target - self.pos), // shoot right
+             (self.has_line_of_sight(target_left, grid), target_left - self.pos)) // shot left
+        } else { //target to our left;
+            let target_right = DVec2::new(ws.x + target.x, target.y);
+            ((self.has_line_of_sight(target_right, grid), target_right - self.pos), // shoot right
+             (self.has_line_of_sight(target, grid), target - self.pos)) // shoot left
+        };
+
+        let left: Option<(IVec2, DVec2)>  = if left.0.is_some() {
+            Some((left.0.unwrap(), left.1))
+        } else {
+            None
+        };
+
+        let right: Option<(IVec2, DVec2)> = if right.0.is_some() {
+            Some((right.0.unwrap(), right.1))
+        } else {
+            None
+        };
+
+        let mut los = left;
+
+        if let Some(r) = right {
+            if let Some(l) = los {
+                let dist_to_right = self.pos.distance_squared(r.0.as_dvec2());
+                let dist_to_left = self.pos.distance_squared(l.0.as_dvec2());
+                if dist_to_left < dist_to_right {
+                    los = Some(l);
+                } else {
+                    los = Some(r);
+                }
+            } else { // los is None, use right
+                los = Some(r);
+            }
+        }
+        los
+    }
     pub fn has_line_of_sight<T>(&self, target: DVec2, grid: &Grid2D<T>) -> Option<IVec2>
         where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell> {
         let sight_vector = target - self.pos;
