@@ -32,7 +32,8 @@ enum GameState {
     Debug,
     FirstPerson,
     LevelEditor,
-    Win
+    Win,
+    Dead
 }
 
 #[derive(PartialEq)]
@@ -371,9 +372,23 @@ async fn main() {
         let mut pos = world_space_centered_coord(player_pos.get_pos_ituple(), 0.0, -0.0);
         let dir = player_facing * DVec2::from((-1.0, 0.0));
 
+        // Check for win condition
+        if player_pos.get_pos() == IVec2::from(ucoords_to_icoords(world.win_room)) {
+            game_state = GameState::Win;
+        }
+
+        // Check for death
+        if player_hp <= 0.0 {
+            game_state = GameState::Dead;
+        }
+
         match game_state {
             GameState::Win => {
                 clear_background(BLACK);
+            }
+
+            GameState::Dead => {
+                clear_background(RED);
             }
 
             GameState::Debug => {
@@ -393,10 +408,6 @@ async fn main() {
 
                 // Cooldown player attack
                 player_state.fire_cooldown = player_state.fire_cooldown.clamp(0.0, fire_cooldown);
-
-                if player_pos.get_pos() == IVec2::from(ucoords_to_icoords(world.win_room)) {
-                    game_state = GameState::Win;
-                }
 
                 // Execute state machine
                 player_state.mode = match player_state.mode {
