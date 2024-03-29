@@ -22,7 +22,7 @@ use macroquad::prelude::*;
 use crate::combat::{Collision};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
-use crate::level::{Level, world_space_centered_coord, apply_boundary_conditions_f64};
+use crate::level::{Level, world_space_centered_coord, apply_boundary_conditions_f64, ucoords_to_icoords};
 use crate::mob::{MagicColor,mob_at_cell, MobData, MobId, Mobs, MobType, MONSTER_HP};
 use crate::mob::MagicColor::{Black, White};
 use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, is_wall, MoveDirection, PlayerPosition, try_move};
@@ -31,7 +31,8 @@ use crate::PlayerMode::{Falling, Idle, Moving};
 enum GameState {
     Debug,
     FirstPerson,
-    LevelEditor
+    LevelEditor,
+    Win
 }
 
 #[derive(PartialEq)]
@@ -279,7 +280,6 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
                     collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), bullet.color));
                 }
                 MobId::Player => {
-                    println!("Player hit by bullet of color {:?}", bullet.color);
                     collisions.push(Collision::new_with_bullet(MobId::Player, bullet.color));
                     bullet.is_alive = false;
                 }
@@ -313,7 +313,8 @@ async fn main() {
     let sprite_image_files = vec![
         "sprites/Bones_shadow1_1.png".to_string(),
         "sprites/light.png".to_string(),
-        "sprites/dark.png".to_string()
+        "sprites/dark.png".to_string(),
+        "sprites/space_ship.png".to_string()
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
@@ -371,6 +372,10 @@ async fn main() {
         let dir = player_facing * DVec2::from((-1.0, 0.0));
 
         match game_state {
+            GameState::Win => {
+                clear_background(BLACK);
+            }
+
             GameState::Debug => {
                 if let Some((p, d)) = debug_view.draw_debug_view(&mut world, screen_size) {
                     //pos = p; // These need fixing
@@ -388,6 +393,10 @@ async fn main() {
 
                 // Cooldown player attack
                 player_state.fire_cooldown = player_state.fire_cooldown.clamp(0.0, fire_cooldown);
+
+                if player_pos.get_pos() == IVec2::from(ucoords_to_icoords(world.win_room)) {
+                    game_state = GameState::Win;
+                }
 
                 // Execute state machine
                 player_state.mode = match player_state.mode {
@@ -437,6 +446,12 @@ async fn main() {
                         }
                     }
                 }
+
+                // Add win room sprite
+                sprite_manager.add_sprite(
+                    world_space_centered_coord(ucoords_to_icoords(world.win_room), 0.0, 0.0),
+                    (3, MagicColor::Black),
+                    DVec4::new(0.8, 0.8, 0.0, 0.0));
 
                 // Animate mobs
                 for m in mobs.mob_list.iter() {

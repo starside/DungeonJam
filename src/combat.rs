@@ -42,13 +42,11 @@ impl Collision {
                             m.hp += player_to_monster_damage/2.0;
                         }
                         m.hp = m.hp.clamp(0.0, mob::MONSTER_HP);
-                        println!("Monster hp is {}", m.hp);
                         if m.hp <= 0.0 {
                             m.is_alive = false;
                         }
                     }
                     MobId::Player => {
-                        println!("Damaging player, player_color {:?}, bullet_color {:?}", player_color, bullet_color);
                         let new_hp = if player_color != *bullet_color {
                             *player_hp - monster_to_player_damage
                         } else {

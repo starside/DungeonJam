@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
-use macroquad::color::{BLACK, colors, GREEN, RED};
+use macroquad::color::{BLACK, colors, GREEN, RED, SKYBLUE};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
 use macroquad::math::{DVec3, IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
@@ -16,6 +16,7 @@ use crate::sprites::{Sprites, SpriteType};
 #[derive(Serialize, Deserialize)]
 pub struct Level {
     pub player_start: (usize, usize),
+    pub win_room: (usize, usize),
     pub grid: Grid2D<WallGridCell>,
     pub mob_list: Vec<(i32, i32)>, // For now assume monster type
     filename: String
@@ -28,6 +29,7 @@ impl Level
         let grid = Grid2D::new(world_width, world_height);
         let mut new_level = Level {
             player_start: (8, 8),
+            win_room: (world_width / 4, 0),
             grid,
             filename: level_name.to_string(),
             mob_list: Vec::new()
@@ -194,6 +196,11 @@ impl LevelEditor {
         let start_pos_world = world_space_centered_coord((world.player_start.0 as i32,world.player_start.1 as i32), 0.0, 0.0);
         let start_pos_screen = world.grid.grid_to_screen_coords(start_pos_world, screen_size).as_vec2();
         draw_circle(start_pos_screen.x, start_pos_screen.y, 5.0, BLACK);
+
+        // Draw win position
+        let win_pos_world = world_space_centered_coord((world.win_room.0 as i32,world.win_room.1 as i32), 0.0, 0.0);
+        let win_pos_screen = world.grid.grid_to_screen_coords(win_pos_world, screen_size).as_vec2();
+        draw_circle(win_pos_screen.x, win_pos_screen.y, 5.0, SKYBLUE);
 
         // Draw current player position
         let player_screen_coords = world.grid.grid_to_screen_coords(pos, screen_size).as_vec2();
