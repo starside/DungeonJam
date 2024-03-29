@@ -84,7 +84,7 @@ impl Sprites {
             ); //(*sprite - pos);
             let distance_squared = sprite_rel_pos.dot(sprite_rel_pos);
             let transform = camera_inverse.mul_vec2(sprite_rel_pos);
-            if transform.y >= 0.0 && distance_squared < cutoff { // back plane culling + max draw distance
+            if transform.y > 0.0 && distance_squared < cutoff && transform.y.is_finite() { // back plane culling + max draw distance
                 self.sp_draw_order.push((distance_squared, i));
             }
         }
@@ -170,7 +170,7 @@ impl Sprites {
                                     (s[2] as f32 * fog_f32) as u8,
                                     (s[3] as f32 * fog_f32) as u8
                                 ];
-                        } else if d2 > shield_start2 && d2 <= shield_end2 {
+                        } else if d2 > shield_start2 && d2 < shield_end2 {
                             rd[y * rw + x] = shield_color;
                         }
 
