@@ -348,7 +348,9 @@ async fn main() {
 
     // Load images
     let mut sprite_images = ImageLoader::new();
-    let sprite_image_files = vec![
+
+
+    let mut game_image_files = vec![
         "sprites/Bones_shadow1_1.png".to_string(),
         "sprites/light.png".to_string(),
         "sprites/dark.png".to_string(),
@@ -357,6 +359,22 @@ async fn main() {
         "sprites/win.png".to_string(),
         "sprites/fail.png".to_string(),
     ];
+
+    let mut flavor_image_files = vec![
+        "sprites/Bones_shadow1_1.png".to_string(),
+        "sprites/light.png".to_string(),
+        "sprites/dark.png".to_string(),
+        "sprites/space_ship.png".to_string(),
+        "sprites/startscreen.png".to_string(),
+        "sprites/win.png".to_string(),
+        "sprites/fail.png".to_string(),
+    ];
+
+    let mut sprite_image_files: Vec<String> = Vec::new();
+    let flavor_sprites_start_index = game_image_files.len();
+    sprite_image_files.append(&mut game_image_files);
+    sprite_image_files.append(&mut flavor_image_files);
+
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
 
@@ -522,6 +540,19 @@ async fn main() {
                     world_space_centered_coord(ucoords_to_icoords(world.win_room), 0.0, 0.1),
                     (3, MagicColor::Black),
                     DVec4::new(0.9, 0.9, 0.0, 0.0));
+
+                // Add flavor sprites
+                if let Some(flavor_sprites) = &world.flavor_sprites {
+                    for &(x,y,sprite_id) in flavor_sprites {
+                        let sid = sprite_id + flavor_sprites_start_index;
+                        if sprite_images.check_image_index(sid) { // Don't crash for missing flavor images
+                            sprite_manager.add_sprite(
+                                DVec2::new(x,y),
+                                (sid, White),
+                                DVec4::new(0.1, 0.1, 0.0, 0.0))
+                        }
+                    }
+                }
 
                 // Animate mobs
                 for m in mobs.mob_list.iter() {

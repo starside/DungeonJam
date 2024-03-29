@@ -21,6 +21,7 @@ pub struct Level {
     pub win_room: (usize, usize),
     pub grid: Grid2D<WallGridCell>,
     pub mob_list: Vec<(i32, i32)>, // For now assume monster type
+    pub flavor_sprites: Option<Vec<(f64, f64, usize)>>,
     filename: String
 }
 
@@ -34,7 +35,8 @@ impl Level
             win_room: (world_width / 4, 0),
             grid,
             filename: level_name.to_string(),
-            mob_list: Vec::new()
+            mob_list: Vec::new(),
+            flavor_sprites: None
         };
 
         match new_level.load_from_file(level_name) {
@@ -189,6 +191,11 @@ impl LevelEditor {
         ];
         let current_brush = brush_table[self.current_brush_idx];
 
+        // Create flavor sprites list
+        if world.flavor_sprites.is_none() {
+            world.flavor_sprites = Some(Vec::new());
+        }
+
         //clear_background(BLACK);
         grid_viewer::draw_grid2d(&world.grid, screen_size);
 
@@ -210,6 +217,14 @@ impl LevelEditor {
         // Draw current player position
         let player_screen_coords = world.grid.grid_to_screen_coords(pos, screen_size).as_vec2();
         draw_circle(player_screen_coords.x, player_screen_coords.y, 3.0, colors::GOLD);
+
+        // Draw flavor sprites
+        if let Some(flavor) = &world.flavor_sprites {
+            for &(x, y, sprite_id) in flavor {
+                let sc = world.grid.grid_to_screen_coords(DVec2::new(x,y), screen_size).as_vec2();
+                draw_circle(sc.x, sc.y, 1.0, colors::RED);
+            }
+        }
 
         // Draw monster positions
         for mob in mob_manager.mob_list.iter() {
@@ -237,6 +252,13 @@ impl LevelEditor {
             None => {}
             Some(x) => {
                 match &x {
+                    KeyCode::Key1 => {
+                        let p = mouse_world_pos;
+                        if let Some(x) = &mut world.flavor_sprites {
+                            x.push((p.x, p.y, 0));
+                        }
+                    }
+
                     KeyCode::P => {
                         let t = mouse_world_pos.as_uvec2();
                         let t = (t.x as usize, t.y as usize);

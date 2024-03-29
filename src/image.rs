@@ -48,4 +48,8 @@ impl ImageLoader {
     pub fn get_image(&self, id: ImageId) -> &Image {
         &self.images[id].image
     }
+
+    pub fn check_image_index(&self, id: ImageId) -> bool {
+        self.images.get(id).is_some()
+    }
 }
