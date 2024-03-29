@@ -1,11 +1,9 @@
-use std::future::Future;
-use std::path::{Path, PathBuf};
-use macroquad::Error;
+use std::path::Path;
+
 use macroquad::prelude::{Image, load_image};
 
 pub struct GameImage {
     image: Image,
-    filename: PathBuf
 }
 
 pub struct ImageLoader  {
@@ -27,7 +25,6 @@ impl ImageLoader {
             Ok(im) => {
                 self.images.push(GameImage {
                     image: im,
-                    filename: PathBuf::from(name)
                 });
                 Some(self.images.len() - 1)
             }

@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use macroquad::color::{BEIGE, BLACK, Color, DARKPURPLE, GRAY, LIGHTGRAY, RED, VIOLET, YELLOW};
-use macroquad::math::{DMat2, DVec2, DVec3, DVec4};
-use macroquad::prelude::{mat2, WHITE};
-use crate::fpv::{FirstPersonViewer, fog_factor};
+
+use macroquad::color::{DARKPURPLE, GRAY};
+use macroquad::math::{DMat2, DVec2, DVec4};
+
 use crate::{fpv, image};
+use crate::fpv::FirstPersonViewer;
 use crate::image::ImageLoader;
-use crate::level::Level;
 use crate::mob::MagicColor;
 
 pub type SpriteType = (image::ImageId, MagicColor);
@@ -35,12 +35,6 @@ impl Sprites {
             sp_type: Vec::new(),
             sp_draw_order: Vec::new()
         }
-    }
-
-    pub fn delete_sprite(&mut self, sprite_idx: usize) {
-        self.sp_positions.swap_remove(sprite_idx);
-        self.sp_size.swap_remove(sprite_idx);
-        self.sp_type.swap_remove(sprite_idx);
     }
 
     pub fn add_sprite(&mut self, pos: DVec2, sprite_type: SpriteType, scaling: DVec4) {

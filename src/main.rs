@@ -1,3 +1,20 @@
+extern crate rand;
+
+use macroquad::color;
+use macroquad::math::f64;
+use macroquad::miniquad::window;
+use macroquad::prelude::*;
+use rand::Rng;
+
+use crate::combat::Collision;
+use crate::grid2d::{Grid2D, WallGridCell};
+use crate::image::ImageLoader;
+use crate::level::{apply_boundary_conditions_f64, Level, ucoords_to_icoords, world_space_centered_coord};
+use crate::mob::{MagicColor, mob_at_cell, MobData, MobId, Mobs, MobType, MONSTER_HP};
+use crate::mob::MagicColor::{Black, White};
+use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, is_wall, MoveDirection, PlayerPosition, try_move};
+use crate::PlayerMode::{Falling, Idle, Moving};
+
 mod raycaster;
 mod grid2d;
 mod grid_viewer;
@@ -10,23 +27,6 @@ mod sprites;
 mod image;
 mod mob;
 mod combat;
-
-extern crate rand;
-use rand::Rng;
-
-use std::fmt::Pointer;
-use macroquad::color;
-use macroquad::math::f64;
-use macroquad::miniquad::{window};
-use macroquad::prelude::*;
-use crate::combat::{Collision};
-use crate::grid2d::{Grid2D, WallGridCell};
-use crate::image::ImageLoader;
-use crate::level::{Level, world_space_centered_coord, apply_boundary_conditions_f64, ucoords_to_icoords};
-use crate::mob::{MagicColor,mob_at_cell, MobData, MobId, Mobs, MobType, MONSTER_HP};
-use crate::mob::MagicColor::{Black, White};
-use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, is_wall, MoveDirection, PlayerPosition, try_move};
-use crate::PlayerMode::{Falling, Idle, Moving};
 
 enum GameState {
     Debug,
@@ -276,12 +276,12 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
             let mob_hit_by_bullet = mob_at_cell(new_pos.as_ivec2(), mob_grid);
             match mob_hit_by_bullet {
                 MobId::NoMob => {}
-                MobId::Mob(ref mob) => {
+                MobId::Mob(_) => {
                     bullet.is_alive = false;
-                    collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), bullet.color));
+                    collisions.push(Collision::new_with_bullet(mob_hit_by_bullet.clone(), bullet.get_color()));
                 }
                 MobId::Player => {
-                    collisions.push(Collision::new_with_bullet(MobId::Player, bullet.color));
+                    collisions.push(Collision::new_with_bullet(MobId::Player, bullet.get_color()));
                     bullet.is_alive = false;
                 }
             }
@@ -445,14 +445,14 @@ async fn main() {
                 for m in mobs.mob_list.iter() {
                     let m = m.borrow();
                     match &m.mob_type {
-                        MobType::Monster(monster) => {
+                        MobType::Monster(_) => {
                             let shields = m.hp / MONSTER_HP;
                             let monster_scaling = DVec4::new(0.8, 0.8, 0.0, shields);
-                            sprite_manager.add_sprite(m.pos, (0, m.color), monster_scaling)
+                            sprite_manager.add_sprite(m.pos, (0, m.get_color()), monster_scaling)
                         }
                         MobType::Bullet => {
                             let bullet_scaling = DVec4::new(0.1, 0.1, 0.0, 0.0);
-                            let sprite_type = (mana_color_srpite_id(m.color), m.color);
+                            let sprite_type = (mana_color_srpite_id(m.get_color()), m.get_color());
                             sprite_manager.add_sprite(m.pos, sprite_type, bullet_scaling)
                         }
                     }
@@ -517,10 +517,10 @@ async fn main() {
                     if can_change_color {
                         let mob_type = &m.borrow();
                         match &mob_type.mob_type {
-                            MobType::Monster(monster) => {
-                                if mana_color == mob_type.color {
+                            MobType::Monster(_) => {
+                                if mana_color == mob_type.get_color() {
                                     if can_attack {
-                                        change_color = Some(mob_type.color.get_opposite());
+                                        change_color = Some(mob_type.get_color().get_opposite());
                                     }
                                 }
                             }
@@ -532,7 +532,7 @@ async fn main() {
                         let mob_type = &mut m.borrow_mut();
                         match &mut mob_type.mob_type {
                             MobType::Monster(_) => {
-                                mob_type.color = new_color;
+                                mob_type.set_color(new_color);
                             }
                             MobType::Bullet => {}
                         }
@@ -552,7 +552,7 @@ async fn main() {
                     if can_attack {
                         let mob_type = &m.borrow();
                         match &mob_type.mob_type {
-                            MobType::Monster(monster) => {
+                            MobType::Monster(_) => {
                                 // Check if line of sight blocked by wall
                                 if let Some((_, dir_wall)) = mob_type.has_line_of_sight_with_bc(pos, &world.grid){
                                     // Check if another monster blocks line of sight.
@@ -564,7 +564,7 @@ async fn main() {
                                                 MobId::Mob(_) => {}
                                                 MobId::Player => {
                                                     if dir.dot(dir_wall) > 0.0 {
-                                                        fire = Some((mob_type.pos, dir.normalize(), mob_type.color));
+                                                        fire = Some((mob_type.pos, dir.normalize(), mob_type.get_color()));
                                                     }
                                                 }
                                             }
@@ -639,11 +639,7 @@ async fn main() {
 
             GameState::LevelEditor => {
                 let (new_position, new_state) = level_editor.draw_editor(
-                    &mut world, &mut mobs, &mut mob_grid, &mut sprite_manager, screen_size, pos, dir);
-                if let Some(x) = new_position {
-                    //todo!()
-                    //(pos, dir) = x;
-                }
+                    &mut world, &mut mobs, &mut mob_grid, screen_size, pos, dir);
                 if let Some(x) = new_state {
                     game_state = x;
                 }

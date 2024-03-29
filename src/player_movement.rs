@@ -2,7 +2,6 @@ use macroquad::math::{DVec2, IVec2};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::level::Level;
 use crate::mob::MobId;
-use crate::PlayerMode::Idle;
 
 pub struct PlayerPosition {
     pos: IVec2

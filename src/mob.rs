@@ -1,13 +1,14 @@
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::ops::Neg;
 use std::rc::Rc;
+
 use macroquad::math::{DVec2, IVec2};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::DeserializeOwned;
+
 use crate::grid2d::{Grid2D, WallGridCell};
-use crate::level::{apply_boundary_conditions_f64, Level, ucoords_to_dvec2};
-use crate::mob::MagicColor::White;
-use crate::raycaster::{cast_ray, HitSide};
+use crate::level::{apply_boundary_conditions_f64, ucoords_to_dvec2};
+use crate::raycaster::cast_ray;
 
 type AliveDead = bool;
 
@@ -82,7 +83,7 @@ pub struct MobData {
     pub move_speed: f64,
     pub pos: DVec2,
     pub mob_type: MobType,
-    pub color: MagicColor
+    color: MagicColor
 }
 
 impl MobData {
@@ -134,7 +135,7 @@ impl MobData {
         where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell> {
         let sight_vector = target - self.pos;
         let dir = sight_vector.normalize();
-        let (_, hit, _, coord) = cast_ray(grid, &self.pos, &dir, MONSTER_LINE_OF_SIGHT);
+        let (_, _, _, coord) = cast_ray(grid, &self.pos, &dir, MONSTER_LINE_OF_SIGHT);
         let hit_coord = coord.as_dvec2() + DVec2::new(0.5, 0.5); // Find center of coordinate hit
         let hit_distance= hit_coord.distance(self.pos);
         let sight_distance = sight_vector.length();
@@ -158,6 +159,10 @@ impl MobData {
     pub fn set_color(&mut self, color: MagicColor) {
         self.color = color;
     }
+
+    pub fn get_color(&self) -> MagicColor {
+        self.color
+    }
 }
 
 pub type Mob = Rc<RefCell<Box<MobData>>>;
@@ -180,17 +185,17 @@ impl From<MobId> for WallGridCell {
 }
 
 impl Serialize for MobId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, _: S) -> Result<S::Ok, S::Error> where S: Serializer {
         todo!()
     }
 }
 
 impl<'de> Deserialize<'de> for MobId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(_: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
         todo!()
     }
 
-    fn deserialize_in_place<D>(deserializer: D, place: &mut Self) -> Result<(), D::Error> where D: Deserializer<'de> {
+    fn deserialize_in_place<D>(_: D, _: &mut Self) -> Result<(), D::Error> where D: Deserializer<'de> {
         todo!()
     }
 }

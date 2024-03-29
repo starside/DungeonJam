@@ -3,7 +3,6 @@ use macroquad::prelude::Vec2;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 use crate::level::apply_boundary_conditions_i32;
-use crate::mob::MobId;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub enum WallGridCell {

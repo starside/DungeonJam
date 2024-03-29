@@ -1,10 +1,11 @@
-use crate::WallGridCell;
 use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
-use macroquad::math::{DVec2, IVec2, Vec2};
+use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
+
 use crate::level::Level;
 use crate::raycaster::{cast_ray, HitSide};
+use crate::WallGridCell;
 
 pub fn fog_factor(distance: f64, max_distance: f64) -> f64 {
     f64::exp(-(2.0*distance/max_distance).powi(2))
@@ -23,7 +24,7 @@ impl FirstPersonViewer {
         let render_texture = Texture2D::from_image(&render_image);
         render_texture.set_filter(FilterMode::Nearest);
         let mut z_buffer: Vec<f64> = Vec::with_capacity(height as usize);
-        for y in 0..height as usize {
+        for _ in 0..height as usize {
             z_buffer.push(f64::INFINITY);
         }
 

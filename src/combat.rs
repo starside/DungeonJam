@@ -1,6 +1,5 @@
-use macroquad::math::DVec2;
 use crate::mob;
-use crate::mob::{MagicColor, MobId, MobType};
+use crate::mob::{MagicColor, MobId};
 
 pub enum CollisionType {
     Bullet(MobId, MagicColor)
@@ -36,7 +35,7 @@ impl Collision {
                     MobId::NoMob => {}
                     MobId::Mob(mob) => {
                         let mut m = mob.borrow_mut();
-                        if m.color != *bullet_color {
+                        if m.get_color() != *bullet_color {
                             m.hp -= player_to_monster_damage;
                         } else {
                             m.hp += player_to_monster_damage/2.0;

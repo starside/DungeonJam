@@ -1,17 +1,18 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
-use macroquad::color::{BLACK, colors, GREEN, PINK, RED, SKYBLUE, WHITE};
+
+use macroquad::color::{BLACK, colors, PINK, RED, SKYBLUE, WHITE};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
-use macroquad::math::{DVec3, IVec2, Vec2};
-use macroquad::prelude::{clear_background, DVec2};
+use macroquad::math::{IVec2, Vec2};
+use macroquad::prelude::DVec2;
 use macroquad::shapes::draw_circle;
 use serde::{Deserialize, Serialize};
-use crate::{GameState, grid_viewer, image};
+
+use crate::{GameState, grid_viewer};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
 use crate::mob::{MobId, Mobs, MobType};
 use crate::mob::MagicColor::{Black, White};
-use crate::sprites::{Sprites, SpriteType};
 
 #[derive(Serialize, Deserialize)]
 pub struct Level {
@@ -175,7 +176,6 @@ impl LevelEditor {
                    world: &mut Level,
                    mob_manager: &mut Mobs,
                    mob_grid: &mut Grid2D<MobId>,
-                   sprite_manager: &mut Sprites,
                    screen_size: (f32, f32), pos: DVec2, dir: DVec2) -> (Option<(DVec2, DVec2)>, Option<GameState>) {
         let mut new_game_state: Option<GameState> = None;
         let brush_table: [WallGridCell; 2] = [
