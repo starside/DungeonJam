@@ -3,7 +3,7 @@ use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
 
-use crate::level::Level;
+use crate::level::{Level, ucoords_to_dvec2};
 use crate::raycaster::{cast_ray, HitSide};
 use crate::WallGridCell;
 
@@ -51,6 +51,8 @@ impl FirstPersonViewer {
         } else {
             1.0
         };
+
+        let world_size = ucoords_to_dvec2(world.grid.get_size()).as_vec2();
 
         for y in 0..(render_height as usize) {
             let y_d = y as f64;
@@ -102,18 +104,17 @@ impl FirstPersonViewer {
                     }
                 };
 
+            let ww2 = world_size.x.powi(2);
+
             for x in 0..draw_start {
                 let current_dist = w as f64 / (2.0 * x as f64 - w as f64); // This can be a table
                 let weight = (current_dist - dist_player) / (dist_wall - dist_player);
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
-                let v = 1.0-current_floor_pos.y as f32 / 64.0;
-                let (c1, c2) = if dir.x > 0.0 {
-                    (Color::new(0.8*v, v, v, 1.0), Color::new(v, 0.8*v, v, 1.0))
-                } else {
-                    (Color::new(v, 0.8*v, v, 1.0), Color::new(0.8*v, v, v, 1.0))
-                };
-                rd[y * rw + x] = c1.into();
-                rd[y * rw + (render_width-1) as usize - x ] = c2.into();
+                let v = 1.0-current_floor_pos.y as f32 / world_size.y;
+                let d = 1.0-(current_floor_pos.distance_squared(pos) as f32 / ww2);
+                let c = Color::new(0.8*v*d, 0.8*v*d, v*d, 1.0);
+                rd[y * rw + x] = c.into();
+                rd[y * rw + (render_width-1) as usize - x ] = c.into();
             }
 
             for x in draw_start..draw_end {
