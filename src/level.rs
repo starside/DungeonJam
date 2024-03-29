@@ -268,6 +268,12 @@ impl LevelEditor {
                             x.push((p.x, p.y, 0));
                         }
                     }
+                    KeyCode::Key2 => {
+                        let p = mouse_world_pos;
+                        if let Some(x) = &mut world.flavor_sprites {
+                            x.push((p.x, p.y, 1));
+                        }
+                    }
 
                     KeyCode::P => {
                         let t = mouse_world_pos.as_uvec2();

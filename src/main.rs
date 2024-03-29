@@ -361,8 +361,13 @@ async fn main() {
     ];
 
     let mut flavor_image_files = vec![
-        "sprites/lamp.png".to_string()
+        "sprites/lamp.png".to_string(),
+        "sprites/Tentacle_plant_shadow1_1.png".to_string()
     ];
+
+    let mut flavor_sprite_scaling: Vec<DVec4> = Vec::new();
+    flavor_sprite_scaling.push(DVec4::new(0.2, 0.2, 0.0, 0.0));
+    flavor_sprite_scaling.push(DVec4::new(0.6, 0.6, 0.0, 0.0));
 
     let mut sprite_image_files: Vec<String> = Vec::new();
     let flavor_sprites_start_index = game_image_files.len();
@@ -540,10 +545,15 @@ async fn main() {
                     for &(x,y,sprite_id) in flavor_sprites {
                         let sid = sprite_id + flavor_sprites_start_index;
                         if sprite_images.check_image_index(sid) { // Don't crash for missing flavor images
+                            let flavor_scaling = if let Some(sca) = flavor_sprite_scaling.get(sprite_id) {
+                                *sca
+                            } else {
+                                DVec4::new(0.1, 0.1, 0.0, 0.0)
+                            };
                             sprite_manager.add_sprite(
                                 DVec2::new(x,y),
                                 (sid, White),
-                                DVec4::new(0.1, 0.1, 0.0, 0.0))
+                                flavor_scaling)
                         }
                     }
                 }
