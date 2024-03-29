@@ -518,9 +518,9 @@ async fn main() {
 
                 // Add win room sprite
                 sprite_manager.add_sprite(
-                    world_space_centered_coord(ucoords_to_icoords(world.win_room), 0.0, 0.0),
+                    world_space_centered_coord(ucoords_to_icoords(world.win_room), 0.0, 0.1),
                     (3, MagicColor::Black),
-                    DVec4::new(0.8, 0.8, 0.0, 0.0));
+                    DVec4::new(0.9, 0.9, 0.0, 0.0));
 
                 // Animate mobs
                 for m in mobs.mob_list.iter() {
