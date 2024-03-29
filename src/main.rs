@@ -352,7 +352,9 @@ async fn main() {
         "sprites/light.png".to_string(),
         "sprites/dark.png".to_string(),
         "sprites/space_ship.png".to_string(),
-        "sprites/startscreen.png".to_string()
+        "sprites/startscreen.png".to_string(),
+        "sprites/win.png".to_string(),
+        "sprites/fail.png".to_string(),
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
@@ -436,10 +438,12 @@ async fn main() {
 
             GameState::Win => {
                 clear_background(BLACK);
+                render_sprite_full_screen(5, &mut sprite_manager, &sprite_images, &mut first_person_view, screen_size);
             }
 
             GameState::Dead => {
-                clear_background(RED);
+                clear_background(BLACK);
+                render_sprite_full_screen(6, &mut sprite_manager, &sprite_images, &mut first_person_view, screen_size);
             }
 
             GameState::Debug => {
