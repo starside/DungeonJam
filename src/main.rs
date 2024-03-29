@@ -461,7 +461,7 @@ async fn main() {
                     match &m.mob_type {
                         MobType::Monster(_) => {
                             let shields = m.hp / MONSTER_HP;
-                            let monster_scaling = DVec4::new(0.8, 0.8, 0.0, shields);
+                            let monster_scaling = DVec4::new(0.6, 0.6, 0.0, shields);
                             sprite_manager.add_sprite(m.get_pos(), (0, m.get_color()), monster_scaling)
                         }
                         MobType::Bullet => {
@@ -518,7 +518,7 @@ async fn main() {
                             mob_grid.set_cell_at_grid_coords_int(new_room, old_mobid);
                             mob_grid.set_cell_at_grid_coords_int(mob_pos, MobId::NoMob);
                             let move_speed_modifier =
-                                if mob_type.get_pos().distance(player_pos.get_pos_dvec()) <= 2.0 {
+                                if mob_type.get_pos().distance(player_pos.get_pos_dvec()) <= 3.0 {
                                     0.5f64
                                 } else {
                                     1.0f64
