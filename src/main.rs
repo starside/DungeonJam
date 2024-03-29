@@ -505,7 +505,7 @@ async fn main() {
                             KeyCode::F1 => {
                                 game_state = GameState::PlayerMap;
                             }
-                            KeyCode::F2 => {
+                            KeyCode::F8 => {
                                 game_state = GameState::LevelEditor;
                             }
                             _ => {}
@@ -717,8 +717,8 @@ async fn main() {
                 first_person_view.render(screen_size);
 
                 // Draw FPS meter
-                let fps = get_fps();
-                draw_text(format!("{}", fps).as_str(), 20.0, 400.0, 30.0, DARKGRAY);
+                //let fps = get_fps();
+                //draw_text(format!("{}", fps).as_str(), 20.0, 400.0, 30.0, DARKGRAY);
 
                 // Show UI
                 let (ui_color, mana_color_string) = match mana_color {
