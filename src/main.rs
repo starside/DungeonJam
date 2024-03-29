@@ -7,6 +7,7 @@ use macroquad::prelude::*;
 use rand::Rng;
 
 use crate::combat::Collision;
+use crate::fpv::FirstPersonViewer;
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
 use crate::level::{apply_boundary_conditions_f64, Level, ucoords_to_icoords, world_space_centered_coord};
@@ -14,6 +15,7 @@ use crate::mob::{MagicColor, mob_at_cell, MobData, MobId, Mobs, MobType, MONSTER
 use crate::mob::MagicColor::{Black, White};
 use crate::player_movement::{has_floor, is_room_occupiable, is_supported_position, is_wall, MoveDirection, PlayerPosition, try_move};
 use crate::PlayerMode::{Falling, Idle, Moving};
+use crate::sprites::Sprites;
 
 mod raycaster;
 mod grid2d;
@@ -318,6 +320,28 @@ fn mana_color_srpite_id(magic_color: MagicColor) -> usize {
     }
 }
 
+fn render_sprite_full_screen(
+    sprite_id: usize,
+    sprite_manager: &mut Sprites,
+    sprite_images: &ImageLoader,
+    first_person_view: &mut FirstPersonViewer,
+    screen_size: (f32, f32)) {
+
+    sprite_manager.clear_sprites();
+    sprite_manager.add_sprite(DVec2::new(2.0, 1.0), (sprite_id, White), DVec4::new(1.0, 1.0, 0.0, 0.0));
+
+    sprite_manager.draw_sprites(
+        5.0,
+        &sprite_images,
+        first_person_view,
+        DVec2::new(1.0, 1.0),
+        DVec2::new(1.0, 0.0),
+        1.0,
+        1.0);//world_width as f64);
+    first_person_view.render(screen_size);
+    sprite_manager.clear_sprites();
+}
+
 #[macroquad::main("BasicShapes")]
 async fn main() {
 
@@ -401,23 +425,10 @@ async fn main() {
         match game_state {
             GameState::Start => {
                 clear_background(BLACK);
-
-                sprite_manager.clear_sprites();
-                sprite_manager.add_sprite(DVec2::new(2.0, 1.0), (4, White), DVec4::new(1.0, 1.0, 0.0, 0.0));
-
-                sprite_manager.draw_sprites(
-                    max_ray_distance,
-                    &sprite_images,
-                    &mut first_person_view,
-                    DVec2::new(1.0, 1.0),
-                    DVec2::new(1.0, 0.0),
-                    1.0,
-                    world_width as f64);
-                first_person_view.render(screen_size);
+                render_sprite_full_screen(4, &mut sprite_manager, &sprite_images, &mut first_person_view, screen_size);
 
                 if let Some(x) = get_last_key_pressed() {
                     if x == KeyCode::Enter {
-                        sprite_manager.clear_sprites();
                         game_state = GameState::FirstPerson;
                     }
                 }
