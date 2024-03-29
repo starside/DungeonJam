@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
-use macroquad::color::{BLACK, colors, GREEN, RED, SKYBLUE};
+use macroquad::color::{BLACK, colors, GREEN, PINK, RED, SKYBLUE, WHITE};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
 use macroquad::math::{DVec3, IVec2, Vec2};
 use macroquad::prelude::{clear_background, DVec2};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{GameState, grid_viewer, image};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::grid_viewer::draw_grid2d_cell;
-use crate::mob::{MobId, Mobs};
+use crate::mob::{MobId, Mobs, MobType};
 use crate::mob::MagicColor::{Black, White};
 use crate::sprites::{Sprites, SpriteType};
 
@@ -211,10 +211,13 @@ impl LevelEditor {
             let s = mob.borrow();
             let p = world.grid.grid_to_screen_coords(s.pos, screen_size).as_vec2();
             let mob_color = match s.is_alive {
-                true => {GREEN}
+                true => {PINK}
                 false => {RED}
             };
-            draw_circle(p.x, p.y, 3.0, mob_color);
+            match s.mob_type {
+                MobType::Monster(_) => {draw_circle(p.x, p.y, 3.0, mob_color);}
+                MobType::Bullet => {draw_circle(p.x, p.y, 1.0, WHITE);}
+            }
         }
 
         if is_mouse_button_pressed(MouseButton::Middle){
@@ -248,6 +251,9 @@ impl LevelEditor {
                     }
                     KeyCode::K => {
                         let kill_monster_pos = mouse_world_pos.as_ivec2();
+                        world.mob_list.retain_mut(|mob_pos| {
+                            IVec2::from(mob_pos.clone()) != kill_monster_pos
+                        });
                         if let Some(mob_to_die) = mob_grid.get_cell_at_grid_coords_int(kill_monster_pos) {
                             match mob_to_die {
                                 MobId::Mob(x) => {
