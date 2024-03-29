@@ -104,14 +104,12 @@ impl FirstPersonViewer {
                     }
                 };
 
-            let ww2 = world_size.x.powi(2);
-
             for x in 0..draw_start {
                 let current_dist = w as f64 / (2.0 * x as f64 - w as f64); // This can be a table
                 let weight = (current_dist - dist_player) / (dist_wall - dist_player);
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
                 let v = 1.0-current_floor_pos.y as f32 / world_size.y;
-                let d = 1.0-(current_floor_pos.distance_squared(pos) as f32 / ww2);
+                let d = 1.0-(current_floor_pos.distance(pos) as f32 / world_size.x);
                 let c = Color::new(0.8*v*d, 0.8*v*d, v*d, 1.0);
                 rd[y * rw + x] = c.into();
                 rd[y * rw + (render_width-1) as usize - x ] = c.into();
