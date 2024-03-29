@@ -499,7 +499,7 @@ async fn main() {
                         if !room_choices.is_empty() {
                             let random_room:usize = rand::thread_rng().gen_range(0..room_choices.len());
                             let new_room = room_choices[random_room];
-                            mob_type.pos = new_room.as_dvec2() + DVec2::new(0.5, 0.5); // Set new mob pos
+                            mob_type.pos = apply_boundary_conditions_f64(new_room.as_dvec2() + DVec2::new(0.5, 0.5), world.grid.get_size()); // Set new mob pos
                             let old_mobid = mob_grid.get_cell_at_grid_coords_int(mob_pos).unwrap().clone();
                             mob_grid.set_cell_at_grid_coords_int(new_room, old_mobid);
                             mob_grid.set_cell_at_grid_coords_int(mob_pos, MobId::NoMob);
