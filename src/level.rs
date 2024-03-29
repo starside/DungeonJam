@@ -331,7 +331,6 @@ impl PlayerMap {
 
         let pos =  world_space_centered_coord(pos.as_ivec2().into(), 0.0, 0.0);
         let pos =  self.grid.grid_to_screen_coords(pos, screen_size).as_vec2();
-        println!("{}, {:?}, {:?}", pos, screen_size, self.grid.get_size());
         draw_circle(pos.x as f32, pos.y as f32, 2.0, RED);
 
         match get_last_key_pressed() {

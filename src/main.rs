@@ -531,7 +531,7 @@ async fn main() {
                     if is_monster && can_move {
                         let mob_type = &mut m.borrow_mut();
                         let mob_pos = mob_type.get_pos().as_ivec2();
-                        let dv:[(i32, i32);4] = [(-1, -1), (-1, 1), (1, 1), (1, -1)];
+                        let dv:[(i32, i32);4] = [(-1, 0), (1, 0), (0, 1), (0, -1)];
                         let mut room_choices: Vec<IVec2> = Vec::new();
                         for v in dv {
                             let v = IVec2::from(v) + mob_pos;

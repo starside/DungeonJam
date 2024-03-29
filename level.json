@@ -1,7 +1,7 @@
 {
   "player_start": [
-    0,
-    0
+    8,
+    1
   ],
   "win_room": [
     4,
@@ -27,7 +27,7 @@
       "Empty",
       "Empty",
       "Empty",
-      "Wall",
+      "Empty",
       "Empty",
       "Empty",
       "Wall",
