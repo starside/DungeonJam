@@ -245,7 +245,17 @@ impl LevelEditor {
         }
 
         if is_mouse_button_down(MouseButton::Left){
-            world.grid.set_cell_at_grid_coords_int(mouse_world_pos.as_ivec2(), current_brush);
+            let cp = mouse_world_pos.as_ivec2();
+            world.grid.set_cell_at_grid_coords_int(cp, current_brush);
+            // Clear flavor sprites in room
+            if current_brush == WallGridCell::Empty {
+                if let Some(flavor_sprites) = &mut world.flavor_sprites {
+                    flavor_sprites.retain_mut(|(x, y, _)| {
+                        let fsc = DVec2::new(*x,*y).as_ivec2();
+                        fsc != cp
+                    });
+                }
+            }
         }
 
         match get_last_key_pressed() {
