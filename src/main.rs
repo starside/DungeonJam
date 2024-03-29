@@ -361,13 +361,7 @@ async fn main() {
     ];
 
     let mut flavor_image_files = vec![
-        "sprites/Bones_shadow1_1.png".to_string(),
-        "sprites/light.png".to_string(),
-        "sprites/dark.png".to_string(),
-        "sprites/space_ship.png".to_string(),
-        "sprites/startscreen.png".to_string(),
-        "sprites/win.png".to_string(),
-        "sprites/fail.png".to_string(),
+        "sprites/lamp.png".to_string()
     ];
 
     let mut sprite_image_files: Vec<String> = Vec::new();
