@@ -257,6 +257,7 @@ impl PlayerState {
 
 fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_grid: &Grid2D<MobId>, collisions: &mut Vec<Collision>) {
     let last_state = bullet.moving;
+    let ws = world.grid.get_size();
     debug_assert!(last_state.is_some());
     match &last_state {
         None => {
@@ -293,7 +294,7 @@ fn move_bullets(bullet: &mut MobData, last_frame_time: f64, world: &Level, mob_g
                 bullet.moving = None;
             } else {
                 bullet.moving = Some((*start, *end, new_lerp));
-                bullet.pos = new_pos;
+                bullet.set_pos(new_pos, ws);
             }
         }
     }
@@ -448,12 +449,12 @@ async fn main() {
                         MobType::Monster(_) => {
                             let shields = m.hp / MONSTER_HP;
                             let monster_scaling = DVec4::new(0.8, 0.8, 0.0, shields);
-                            sprite_manager.add_sprite(m.pos, (0, m.get_color()), monster_scaling)
+                            sprite_manager.add_sprite(m.get_pos(), (0, m.get_color()), monster_scaling)
                         }
                         MobType::Bullet => {
                             let bullet_scaling = DVec4::new(0.1, 0.1, 0.0, 0.0);
                             let sprite_type = (mana_color_srpite_id(m.get_color()), m.get_color());
-                            sprite_manager.add_sprite(m.pos, sprite_type, bullet_scaling)
+                            sprite_manager.add_sprite(m.get_pos(), sprite_type, bullet_scaling)
                         }
                     }
                 }
@@ -487,7 +488,7 @@ async fn main() {
 
                     if is_monster && can_move {
                         let mob_type = &mut m.borrow_mut();
-                        let mob_pos = mob_type.pos.as_ivec2();
+                        let mob_pos = mob_type.get_pos().as_ivec2();
                         let dv:[(i32, i32);4] = [(-1, -1), (-1, 1), (1, 1), (1, -1)];
                         let mut room_choices: Vec<IVec2> = Vec::new();
                         for v in dv {
@@ -499,7 +500,7 @@ async fn main() {
                         if !room_choices.is_empty() {
                             let random_room:usize = rand::thread_rng().gen_range(0..room_choices.len());
                             let new_room = room_choices[random_room];
-                            mob_type.pos = apply_boundary_conditions_f64(new_room.as_dvec2() + DVec2::new(0.5, 0.5), world.grid.get_size()); // Set new mob pos
+                            mob_type.set_pos_centered(new_room.as_dvec2(), world.grid.get_size()); // Set new mob pos
                             let old_mobid = mob_grid.get_cell_at_grid_coords_int(mob_pos).unwrap().clone();
                             mob_grid.set_cell_at_grid_coords_int(new_room, old_mobid);
                             mob_grid.set_cell_at_grid_coords_int(mob_pos, MobId::NoMob);
@@ -564,7 +565,7 @@ async fn main() {
                                                 MobId::Mob(_) => {}
                                                 MobId::Player => {
                                                     if dir.dot(dir_wall) > 0.0 {
-                                                        fire = Some((mob_type.pos, dir.normalize(), mob_type.get_color()));
+                                                        fire = Some((mob_type.get_pos(), dir.normalize(), mob_type.get_color()));
                                                     }
                                                 }
                                             }

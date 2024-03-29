@@ -209,7 +209,7 @@ impl LevelEditor {
         // Draw monster positions
         for mob in mob_manager.mob_list.iter() {
             let s = mob.borrow();
-            let p = world.grid.grid_to_screen_coords(s.pos, screen_size).as_vec2();
+            let p = world.grid.grid_to_screen_coords(s.get_pos(), screen_size).as_vec2();
             let mob_color = match s.is_alive {
                 true => {PINK}
                 false => {RED}

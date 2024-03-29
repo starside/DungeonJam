@@ -81,12 +81,24 @@ pub struct MobData {
     pub hp: f64,
     pub moving: Option<(DVec2, DVec2, f64)>, // start coord, end coord, lerp
     pub move_speed: f64,
-    pub pos: DVec2,
+    pos: DVec2,
     pub mob_type: MobType,
     color: MagicColor
 }
 
 impl MobData {
+    pub fn get_pos(&self) -> DVec2 {
+        self.pos
+    }
+
+    pub fn set_pos(&mut self, pos: DVec2, world_size: (usize, usize)) {
+        self.pos = apply_boundary_conditions_f64(pos, world_size);
+    }
+
+    pub fn set_pos_centered(&mut self, pos: DVec2, world_size: (usize, usize)) {
+        self.pos = apply_boundary_conditions_f64(pos + DVec2::new(0.5, 0.5), world_size);
+    }
+
 
     pub fn has_line_of_sight_with_bc<T>(&self, target: DVec2, grid: &Grid2D<T>) -> Option<(IVec2, DVec2)> // hit coord, direction
         where T: Default + Clone + Serialize + DeserializeOwned + Into<WallGridCell>{
