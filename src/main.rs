@@ -28,7 +28,11 @@ mod image;
 mod mob;
 mod combat;
 
+const RENDER_WIDTH:u16 = 640;
+const RENDER_HEIGHT:u16 = 480;
+
 enum GameState {
+    Start,
     Debug,
     FirstPerson,
     LevelEditor,
@@ -350,7 +354,7 @@ async fn main() {
     let mut debug_view = debug::DebugView::default();
 
     // Set up low resolution renderer
-    let mut first_person_view = fpv::FirstPersonViewer::new(640, 480);
+    let mut first_person_view = fpv::FirstPersonViewer::new(RENDER_WIDTH, RENDER_HEIGHT);
 
     // Translate player starting position to world vector coords.
     // These are the gameplay variables, the others should not be modified directly
@@ -367,7 +371,7 @@ async fn main() {
     // Player map
     let mut player_map = level::PlayerMap::new(world.grid.get_size());
 
-    let mut game_state = GameState::LevelEditor;
+    let mut game_state = GameState::Start;
     let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0, fire_cooldown: 0.0};
 
     // Array to store collisions
@@ -394,6 +398,30 @@ async fn main() {
         }
 
         match game_state {
+            GameState::Start => {
+                clear_background(BLACK);
+
+                sprite_manager.clear_sprites();
+                sprite_manager.add_sprite(DVec2::new(2.0, 1.0), (3, White), DVec4::new(1.0, 1.0, 0.0, 0.0));
+
+                sprite_manager.draw_sprites(
+                    max_ray_distance,
+                    &sprite_images,
+                    &mut first_person_view,
+                    DVec2::new(1.0, 1.0),
+                    DVec2::new(1.0, 0.0),
+                    0.66,
+                    world_width as f64);
+                first_person_view.render(screen_size);
+
+                if let Some(x) = get_last_key_pressed() {
+                    if x == KeyCode::Enter {
+                        sprite_manager.clear_sprites();
+                        game_state = GameState::FirstPerson;
+                    }
+                }
+            }
+
             GameState::Win => {
                 clear_background(BLACK);
             }
