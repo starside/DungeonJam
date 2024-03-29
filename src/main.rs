@@ -327,7 +327,8 @@ async fn main() {
         "sprites/Bones_shadow1_1.png".to_string(),
         "sprites/light.png".to_string(),
         "sprites/dark.png".to_string(),
-        "sprites/space_ship.png".to_string()
+        "sprites/space_ship.png".to_string(),
+        "sprites/startscreen.png".to_string()
     ];
     sprite_images.load_image_list(&sprite_image_files).await.expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
@@ -402,7 +403,7 @@ async fn main() {
                 clear_background(BLACK);
 
                 sprite_manager.clear_sprites();
-                sprite_manager.add_sprite(DVec2::new(2.0, 1.0), (3, White), DVec4::new(1.0, 1.0, 0.0, 0.0));
+                sprite_manager.add_sprite(DVec2::new(2.0, 1.0), (4, White), DVec4::new(1.0, 1.0, 0.0, 0.0));
 
                 sprite_manager.draw_sprites(
                     max_ray_distance,

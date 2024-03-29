@@ -819,6 +819,9 @@
       "Empty",
       "Empty",
       "Empty",
+      "Wall",
+      "Wall",
+      "Wall",
       "Empty",
       "Empty",
       "Empty",
@@ -834,6 +837,7 @@
       "Empty",
       "Empty",
       "Empty",
+      "Wall",
       "Empty",
       "Empty",
       "Empty",
@@ -849,6 +853,8 @@
       "Empty",
       "Empty",
       "Empty",
+      "Wall",
+      "Wall",
       "Empty",
       "Empty",
       "Empty",
@@ -864,6 +870,7 @@
       "Empty",
       "Empty",
       "Empty",
+      "Wall",
       "Empty",
       "Empty",
       "Empty",
@@ -878,6 +885,7 @@
       "Empty",
       "Empty",
       "Empty",
+      "Wall",
       "Empty",
       "Empty",
       "Empty",
@@ -893,15 +901,7 @@
       "Empty",
       "Empty",
       "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
-      "Empty",
+      "Wall",
       "Wall",
       "Empty",
       "Wall",
@@ -1045,6 +1045,14 @@
     [
       1,
       62
+    ],
+    [
+      10,
+      53
+    ],
+    [
+      10,
+      56
     ]
   ],
   "filename": "level.json"
