@@ -28,7 +28,7 @@ pub fn draw_grid2d_cell(pos: Vec2, cell_type: WallGridCell, cell_border: f32, wo
             GRAY
         }
         WallGridCell::Wall => {
-            GREEN
+            GOLD
         }
     };
 

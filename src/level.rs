@@ -318,15 +318,21 @@ impl PlayerMap {
                 let cells = self.grid.get_cells();
                 let cell = &cells[y * ww + x];
                 let cell_pos = Vec2::from((
-                      (x as f32 + 0.5),
-                      (y as f32 + 0.5)
+                      (x as f32),
+                      (y as f32)
                 ));
                 let pos =  self.grid.grid_to_screen_coords(cell_pos.as_dvec2(), screen_size).as_vec2();
                 if *cell == WallGridCell::Wall{
-                    draw_circle(pos.x, pos.y, 2.0, GOLD);
+                    //draw_circle(pos.x, pos.y, 2.0, GOLD);
+                    draw_grid2d_cell(pos, WallGridCell::Wall, 2.0, &self.grid, screen_size);
                 }
             }
         }
+
+        let pos =  world_space_centered_coord(pos.as_ivec2().into(), 0.0, 0.0);
+        let pos =  self.grid.grid_to_screen_coords(pos, screen_size).as_vec2();
+        println!("{}, {:?}, {:?}", pos, screen_size, self.grid.get_size());
+        draw_circle(pos.x as f32, pos.y as f32, 2.0, RED);
 
         match get_last_key_pressed() {
             None => {}

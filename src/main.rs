@@ -410,7 +410,7 @@ async fn main() {
                     &mut first_person_view,
                     DVec2::new(1.0, 1.0),
                     DVec2::new(1.0, 0.0),
-                    0.66,
+                    1.0,
                     world_width as f64);
                 first_person_view.render(screen_size);
 
@@ -694,7 +694,7 @@ async fn main() {
             }
 
             GameState::PlayerMap => {
-                if let Some(x) = player_map.draw_map(screen_size, pos) {
+                if let Some(x) = player_map.draw_map(screen_size, player_pos.get_pos_dvec()) {
                     game_state = x;
                 }
             }
