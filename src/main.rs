@@ -32,6 +32,7 @@ enum GameState {
     Debug,
     FirstPerson,
     LevelEditor,
+    PlayerMap,
     Win,
     Dead
 }
@@ -357,6 +358,9 @@ async fn main() {
     // Level editor
     let mut level_editor = level::LevelEditor::new();
 
+    // Player map
+    let mut player_map = level::PlayerMap::new(world.grid.get_size());
+
     let mut game_state = GameState::LevelEditor;
     let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0, fire_cooldown: 0.0};
 
@@ -410,6 +414,9 @@ async fn main() {
                 // Cooldown player attack
                 player_state.fire_cooldown = player_state.fire_cooldown.clamp(0.0, fire_cooldown);
 
+                // Update map
+                player_map.add_marker(player_pos.get_pos());
+
                 // Execute state machine
                 player_state.mode = match player_state.mode {
                     Idle => {
@@ -428,10 +435,10 @@ async fn main() {
                     Some(x) => {
                         match &x {
                             KeyCode::F1 => {
-                                game_state = GameState::LevelEditor;
+                                game_state = GameState::PlayerMap;
                             }
                             KeyCode::F2 => {
-                                game_state = GameState::Debug;
+                                game_state = GameState::LevelEditor;
                             }
                             _ => {}
                         }
@@ -642,6 +649,12 @@ async fn main() {
                 let (new_position, new_state) = level_editor.draw_editor(
                     &mut world, &mut mobs, &mut mob_grid, screen_size, pos, dir);
                 if let Some(x) = new_state {
+                    game_state = x;
+                }
+            }
+
+            GameState::PlayerMap => {
+                if let Some(x) = player_map.draw_map(screen_size, pos) {
                     game_state = x;
                 }
             }

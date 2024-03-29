@@ -1,11 +1,12 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
 
-use macroquad::color::{BLACK, colors, PINK, RED, SKYBLUE, WHITE};
+use macroquad::color::{BLACK, colors, GOLD, PINK, RED, SKYBLUE, WHITE};
 use macroquad::input::{get_last_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, mouse_position, MouseButton};
 use macroquad::math::{IVec2, Vec2};
-use macroquad::prelude::DVec2;
+use macroquad::prelude::{DVec2};
 use macroquad::shapes::draw_circle;
+use macroquad::window::clear_background;
 use serde::{Deserialize, Serialize};
 
 use crate::{GameState, grid_viewer};
@@ -105,6 +106,10 @@ impl Level
 
 pub struct LevelEditor {
     current_brush_idx: usize
+}
+
+pub struct PlayerMap {
+    grid: Grid2D<WallGridCell>
 }
 
 // Applies boundary conditions.  Clamp vertical, wrap horizontal
@@ -287,5 +292,54 @@ impl LevelEditor {
         }
 
         (Some((pos, dir)), new_game_state)
+    }
+}
+
+impl PlayerMap {
+    pub fn new(world_size: (usize, usize)) -> Self {
+        let mut x = Grid2D::new(world_size.0, world_size.1);
+        x.zero();
+        PlayerMap {grid: x}
+    }
+
+    pub fn add_marker(&mut self, pos: IVec2) {
+        //let pos = apply_boundary_conditions_i32(pos, self.grid.get_size());
+        self.grid.set_cell_at_grid_coords_int(pos, WallGridCell::Wall);
+    }
+    pub fn draw_map(&self,
+                       screen_size: (f32, f32),
+                       pos: DVec2) -> Option<GameState> {
+        let mut new_game_state: Option<GameState> = None;
+
+        let (ww, wh) = self.grid.get_size();
+        clear_background(BLACK);
+        for y in 0..wh {
+            for x in 0..ww {
+                let cells = self.grid.get_cells();
+                let cell = &cells[y * ww + x];
+                let cell_pos = Vec2::from((
+                      (x as f32 + 0.5),
+                      (y as f32 + 0.5)
+                ));
+                let pos =  self.grid.grid_to_screen_coords(cell_pos.as_dvec2(), screen_size).as_vec2();
+                if *cell == WallGridCell::Wall{
+                    draw_circle(pos.x, pos.y, 2.0, GOLD);
+                }
+            }
+        }
+
+        match get_last_key_pressed() {
+            None => {}
+            Some(x) => {
+                match &x {
+                    KeyCode::Escape => {
+                        new_game_state = Some(GameState::FirstPerson);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        new_game_state
     }
 }
