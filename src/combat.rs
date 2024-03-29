@@ -38,7 +38,7 @@ impl Collision {
                         if m.get_color() != *bullet_color {
                             m.hp -= player_to_monster_damage;
                         } else {
-                            m.hp += player_to_monster_damage/2.0;
+                            m.hp += player_to_monster_damage;
                         }
                         m.hp = m.hp.clamp(0.0, mob::MONSTER_HP);
                         if m.hp <= 0.0 {

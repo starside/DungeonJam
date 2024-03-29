@@ -35,6 +35,13 @@ impl FirstPersonViewer {
             z_buffer
         }
     }
+
+    pub fn reset_z_buffer(&mut self) {
+        for i in self.z_buffer.iter_mut() {
+            *i = f64::INFINITY;
+        }
+    }
+
     pub fn draw_view(
         &mut self,
         max_ray_distance: f64,

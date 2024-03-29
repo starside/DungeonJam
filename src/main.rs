@@ -338,6 +338,7 @@ fn render_sprite_full_screen(
         DVec2::new(1.0, 0.0),
         1.0,
         1.0);//world_width as f64);
+    first_person_view.reset_z_buffer();
     first_person_view.render(screen_size);
     sprite_manager.clear_sprites();
 }
