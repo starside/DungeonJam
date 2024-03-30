@@ -115,6 +115,7 @@ impl PlayerState {
                         } else {
                             *player_facing = 1.0;
                         }
+                        self.look_rotation = 0.0;
                         Idle
                     }
                     KeyCode::W => { // Move forward
