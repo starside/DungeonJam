@@ -427,6 +427,9 @@ async fn main() {
     let mut collisions: Vec<Collision> = Vec::with_capacity(16);
     let mut new_bullets: Vec<(DVec2, DVec2, MagicColor)> = Vec::new();
 
+    let mut full_screen_mode = false;
+    set_fullscreen(full_screen_mode);
+
     loop {
         let screen_size = window::screen_size();
         clear_background(BLACK.into());
@@ -444,6 +447,13 @@ async fn main() {
         // Check for death
         if player_hp <= 0.0 {
             game_state = GameState::Dead;
+        }
+
+        if let Some(k) = get_last_key_pressed() {
+            if k == KeyCode::F4 {
+                full_screen_mode = !full_screen_mode;
+                set_fullscreen(full_screen_mode);
+            }
         }
 
         match game_state {
