@@ -69,3 +69,20 @@ folder.
 
 Press F8 to bring up the level editor if you want to cheat.  This is
 not documented, look at "level.rs" to figure out the key bindings.
+
+Here is a partial description of the controls:
+
+- F12: Save map
+- Left click: Create room
+- Right click: Change room brush, currently Wall or Empty
+- If you place an empty room, it will delete the flavor sprites such 
+  as lamps in that room.
+- e:  Place enemy
+- k:  kill enemy.  If you kill an enemy in it's start room, it will no longer
+      spawn there at game start.  If it has moved, it just dies.  This means
+      to delete an enemy spawn at start, press f8 immediately and kill it
+      before it moves.
+- p: Set player start position.  You need to re-load game to get there.
+- 1: Place lamp
+- 2: Place strange alien tree
+- F9:  Load map, not sure if this works, I never use it. Just reload game
