@@ -44,6 +44,10 @@ impl FirstPersonViewer {
         }
     }
 
+    const FLOOR_TEX:usize = 0;
+    const WALL_TEX:usize = 2;
+    const ROOF_TEX:usize = 1;
+
     pub fn draw_view(
         &mut self,
         max_ray_distance: f64,
@@ -65,9 +69,9 @@ impl FirstPersonViewer {
         let world_size = ucoords_to_dvec2(world.grid.get_size()).as_vec2();
 
         let mut sprite_data: [&Image; 3] = [
-            sprite_manager.get_image(0),
-            sprite_manager.get_image(1),
-            sprite_manager.get_image(2),
+            sprite_manager.get_image(7),
+            sprite_manager.get_image(8),
+            sprite_manager.get_image(9),
         ];
 
         for y in 0..(render_height as usize) {
@@ -94,7 +98,22 @@ impl FirstPersonViewer {
             };
 
             // tex size
-            let sid = 0;
+            let sid =
+                match hit_type {
+                    WallGridCell::Empty => { Self::ROOF_TEX }
+                    WallGridCell::Wall => {
+                        match hit_side {
+                            HitSide::Horizontal => {
+                                if ray_dir.y > 0.0 {
+                                    Self::FLOOR_TEX
+                                } else {
+                                    Self::ROOF_TEX
+                                }
+                            }
+                            HitSide::Vertical => { Self::WALL_TEX } //side
+                        }
+                    }
+                };
 
             let tex_width_u = sprite_data[sid].width as usize;
             let tex_height_u = sprite_data[sid].height as usize;

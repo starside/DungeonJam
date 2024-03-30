@@ -352,13 +352,16 @@ async fn main() {
 
 
     let mut game_image_files = vec![
-        "sprites/Bones_shadow1_1.png".to_string(),
-        "sprites/light.png".to_string(),
-        "sprites/dark.png".to_string(),
-        "sprites/space_ship.png".to_string(),
-        "sprites/startscreen.png".to_string(),
-        "sprites/win.png".to_string(),
-        "sprites/fail.png".to_string(),
+        "sprites/Bones_shadow1_1.png".to_string(),  //0
+        "sprites/light.png".to_string(),            //1
+        "sprites/dark.png".to_string(),             //2
+        "sprites/space_ship.png".to_string(),       //3
+        "sprites/startscreen.png".to_string(),      //4
+        "sprites/win.png".to_string(),              //5
+        "sprites/fail.png".to_string(),             //6
+        "sprites/steelfloor7.png".to_string(),      //7
+        "sprites/lightwall.png".to_string(),        //8
+        "sprites/pezwall.png".to_string(),          //9
     ];
 
     let mut flavor_image_files = vec![
