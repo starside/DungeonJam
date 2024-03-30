@@ -2,9 +2,11 @@ use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
+use crate::grid2d::WallGridCell::Empty;
 use crate::image::ImageLoader;
 
 use crate::level::{Level, ucoords_to_dvec2};
+use crate::mob::MagicColor::Black;
 use crate::raycaster::{cast_ray, HitSide};
 use crate::raycaster::HitSide::{Horizontal, Vertical};
 use crate::WallGridCell;
@@ -179,10 +181,13 @@ impl FirstPersonViewer {
                 let tex_x = (tex_pos as usize).clamp(0, tex_width_u - 1);
                 tex_pos += step;
 
-                let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
-                let cv = Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec();
+                let cv = if hit_type != Empty {
+                    let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
+                    Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec()
+                } else {
+                    BLACK.to_vec()
+                };
 
-                //let cv = Color::to_vec(&color);
                 let pixel = &mut rd[y * rw + x];
                 *pixel = Color::from_vec(fog * cv).into();
             }
