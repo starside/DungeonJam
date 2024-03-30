@@ -2,9 +2,11 @@ use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
+use crate::image::ImageLoader;
 
 use crate::level::{Level, ucoords_to_dvec2};
 use crate::raycaster::{cast_ray, HitSide};
+use crate::raycaster::HitSide::{Horizontal, Vertical};
 use crate::WallGridCell;
 
 pub fn fog_factor(distance: f64, max_distance: f64) -> f64 {
@@ -48,7 +50,8 @@ impl FirstPersonViewer {
         world: &Level,
         pos: DVec2,
         dir: DVec2,
-        plane_scale: f64) {
+        plane_scale: f64,
+        sprite_manager: &ImageLoader) {
 
         let plane = plane_scale*dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -60,6 +63,12 @@ impl FirstPersonViewer {
         };
 
         let world_size = ucoords_to_dvec2(world.grid.get_size()).as_vec2();
+
+        let mut sprite_data: [&Image; 3] = [
+            sprite_manager.get_image(0),
+            sprite_manager.get_image(1),
+            sprite_manager.get_image(2),
+        ];
 
         for y in 0..(render_height as usize) {
             let y_d = y as f64;
@@ -78,11 +87,32 @@ impl FirstPersonViewer {
 
             // Calculate wall_x
             let wall_hit_coord = pos + perp_wall_dist * ray_dir;
-            let wall_x: f64 = if hit_side == HitSide::Vertical {
+            let wall_y: f64 = if hit_side == HitSide::Vertical {
                 wall_hit_coord.y - wall_hit_coord.y.floor()
             } else {
                 wall_hit_coord.x - wall_hit_coord.x.floor()
             };
+
+            // tex size
+            let sid = 0;
+
+            let tex_width_u = sprite_data[sid].width as usize;
+            let tex_height_u = sprite_data[sid].height as usize;
+            let tex_width = sprite_data[sid].width as f64;
+            let tex_height = sprite_data[sid].height as f64;
+
+            // Calculate texY
+            let mut tex_y = (wall_y * tex_height) as usize;
+            //if hit_side == Vertical && ray_dir_x * dir.x < 0.0 {tex_y = tex_height as usize - tex_y - 1;} // The ifs may need to change
+            //if hit_side == Horizontal && ray_dir_y * dir.x > 0.0 {tex_y = tex_height as usize - tex_y - 1;}
+            //println!("{}", dir.x/dir.x.abs());
+
+            // How much to step
+            let step = (tex_width / (line_width as f64));
+
+            // starting texture pos
+            let mut tex_pos = (draw_start as i32 - w/2 + line_width / 2) as f64 * step;
+
 
             // Store z buffer
             match hit_type {
@@ -101,8 +131,10 @@ impl FirstPersonViewer {
                         match hit_side {
                             HitSide::Horizontal => {
                                 if ray_dir.y > 0.0 {
+                                    tex_y = tex_height as usize - tex_y - 1;
                                     SKYBLUE //top
                                 } else {
+                                    tex_y = tex_height as usize - tex_y - 1;
                                     DARKGREEN // bottom
                                 }
                             }
@@ -122,8 +154,16 @@ impl FirstPersonViewer {
                 rd[y * rw + (render_width-1) as usize - x ] = c.into();
             }
 
+            let sprite_pixels = sprite_data[sid].get_image_data();
+
             for x in draw_start..draw_end {
-                let cv = Color::to_vec(&color);
+                let tex_x = (tex_pos as usize).clamp(0, tex_width_u - 1);
+                tex_pos += step;
+
+                let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
+                let cv = Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec();
+
+                //let cv = Color::to_vec(&color);
                 let pixel = &mut rd[y * rw + x];
                 *pixel = Color::from_vec(fog * cv).into();
             }

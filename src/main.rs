@@ -706,7 +706,7 @@ async fn main() {
 
                 // Draw frame
                 let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
-                first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale);
+                first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale, &sprite_images);
                 sprite_manager.draw_sprites(
                     max_ray_distance,
                     &sprite_images,
