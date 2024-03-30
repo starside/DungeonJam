@@ -53,7 +53,7 @@ it's an old school raycaster, similar to Doom.
 
 ### Running
 
-Run the "dungeonjam" executable in the root folder.  The sprites folder and
+Run the "dungeoncrawl" executable in the root folder.  The sprites folder and
 level.json should all be in the same folder.
 
 You may also build and run from source by installing Rust,
