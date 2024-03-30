@@ -375,7 +375,7 @@ impl PlayerMap {
             None => {}
             Some(x) => {
                 match &x {
-                    KeyCode::Escape => {
+                    KeyCode::Escape | KeyCode::F1 => {
                         new_game_state = Some(GameState::FirstPerson);
                     }
                     _ => {}
