@@ -2,7 +2,7 @@ use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
-use crate::grid2d::WallGridCell::Empty;
+use crate::grid2d::WallGridCell::{Empty, Wall};
 use crate::image::ImageLoader;
 
 use crate::level::{Level, ucoords_to_dvec2};
@@ -20,6 +20,13 @@ pub struct FirstPersonViewer {
     pub render_image: Image,
     render_texture: Texture2D,
     pub z_buffer: Vec<f64>
+}
+
+pub type SpriteId = usize;
+pub struct RoomTextureBindings {
+    pub(crate) floor: SpriteId,
+    pub(crate) wall: SpriteId,
+    pub(crate) ceiling: SpriteId
 }
 
 impl FirstPersonViewer {
@@ -46,10 +53,6 @@ impl FirstPersonViewer {
         }
     }
 
-    const FLOOR_TEX:usize = 0;
-    const WALL_TEX:usize = 2;
-    const ROOF_TEX:usize = 1;
-
     pub fn draw_view(
         &mut self,
         max_ray_distance: f64,
@@ -57,6 +60,7 @@ impl FirstPersonViewer {
         pos: DVec2,
         dir: DVec2,
         plane_scale: f64,
+        texture_bindings: &RoomTextureBindings,
         sprite_manager: &ImageLoader) {
 
         let plane = plane_scale*dir.perp();
@@ -100,19 +104,19 @@ impl FirstPersonViewer {
             };
 
             // tex size
-            let sid =
+            let sid = // TODO:  Make this Option<SpriteId>
                 match hit_type {
-                    WallGridCell::Empty => { Self::ROOF_TEX }
-                    WallGridCell::Wall => {
+                    Empty => { texture_bindings.wall }
+                    Wall => {
                         match hit_side {
-                            HitSide::Horizontal => {
+                            Horizontal => {
                                 if ray_dir.y > 0.0 {
-                                    Self::FLOOR_TEX
+                                    texture_bindings.floor
                                 } else {
-                                    Self::ROOF_TEX
+                                    texture_bindings.ceiling
                                 }
                             }
-                            HitSide::Vertical => { Self::WALL_TEX } //side
+                            Vertical => {texture_bindings.wall} //side
                         }
                     }
                 };

@@ -7,7 +7,7 @@ use macroquad::prelude::*;
 use rand::Rng;
 
 use crate::combat::Collision;
-use crate::fpv::FirstPersonViewer;
+use crate::fpv::{FirstPersonViewer, RoomTextureBindings};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
 use crate::level::{apply_boundary_conditions_f64, Level, ucoords_to_icoords, world_space_centered_coord};
@@ -719,7 +719,12 @@ async fn main() {
 
                 // Draw frame
                 let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
-                first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale, &sprite_images);
+                let texture_bindings = RoomTextureBindings {
+                    floor: 0,
+                    wall: 2,
+                    ceiling: 1
+                };
+                first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale, &texture_bindings, &sprite_images);
                 sprite_manager.draw_sprites(
                     max_ray_distance,
                     &sprite_images,
