@@ -1,4 +1,4 @@
-use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, SKYBLUE, WHITE};
+use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, GREEN, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
@@ -103,71 +103,82 @@ impl FirstPersonViewer {
                 wall_hit_coord.x - wall_hit_coord.x.floor()
             };
 
+            // Store z buffer
+            match hit_type {
+                Empty => {self.z_buffer[y] = f64::INFINITY}
+                Wall => {self.z_buffer[y] = perp_wall_dist}
+            }
+
+            // Fog and misc variables for textures
+            let dist_wall = perp_wall_dist;
+            let dist_player = 0.0f64;
+            let fog = fog_factor(perp_wall_dist, max_ray_distance) as f32;
+
             // tex size
-            let sid = // TODO:  Make this Option<SpriteId>
+            let sid: Option<SpriteId> =
                 match hit_type {
-                    Empty => { texture_bindings.wall }
+                    Empty => { None }
                     Wall => {
                         match hit_side {
                             Horizontal => {
                                 if ray_dir.y > 0.0 {
-                                    texture_bindings.floor
+                                    Some(texture_bindings.floor)
                                 } else {
-                                    texture_bindings.ceiling
+                                    Some(texture_bindings.ceiling)
                                 }
                             }
-                            Vertical => {texture_bindings.wall} //side
+                            Vertical => {Some(texture_bindings.wall)} //side
                         }
                     }
                 };
 
-            let tex_width_u = sprite_data[sid].width as usize;
-            let tex_height_u = sprite_data[sid].height as usize;
-            let tex_width = sprite_data[sid].width as f64;
-            let tex_height = sprite_data[sid].height as f64;
+            if let Some(texture_id) = sid {
+                let tex_width_u = sprite_data[texture_id].width as usize;
+                let tex_height_u = sprite_data[texture_id].height as usize;
+                let tex_width = sprite_data[texture_id].width as f64;
+                let tex_height = sprite_data[texture_id].height as f64;
 
-            // Calculate texY
-            let mut tex_y = (wall_y * tex_height) as usize;
-            //if hit_side == Vertical && ray_dir_x * dir.x < 0.0 {tex_y = tex_height as usize - tex_y - 1;} // The ifs may need to change
-            //if hit_side == Horizontal && ray_dir_y * dir.x > 0.0 {tex_y = tex_height as usize - tex_y - 1;}
-            //println!("{}", dir.x/dir.x.abs());
+                // Calculate texY
+                let mut tex_y = (wall_y * tex_height) as usize;
+                //if hit_side == Vertical && ray_dir_x * dir.x < 0.0 {tex_y = tex_height as usize - tex_y - 1;} // The ifs may need to change
+                //if hit_side == Horizontal && ray_dir_y * dir.x > 0.0 {tex_y = tex_height as usize - tex_y - 1;}
+                //println!("{}", dir.x/dir.x.abs());
 
-            // How much to step
-            let step = (tex_width / (line_width as f64));
+                // How much to step
+                let step = (tex_width / (line_width as f64));
 
-            // starting texture pos
-            let mut tex_pos = (draw_start as i32 - w/2 + line_width / 2) as f64 * step;
+                // starting texture pos
+                let mut tex_pos = (draw_start as i32 - w/2 + line_width / 2) as f64 * step;
 
+                if hit_type == Wall && hit_side == Horizontal {
+                    if ray_dir.y > 0.0 {
+                        tex_y = tex_height as usize - tex_y - 1;
+                    } else {
+                        tex_y = tex_height as usize - tex_y - 1;
+                    }
+                }
 
-            // Store z buffer
-            match hit_type {
-                WallGridCell::Empty => {self.z_buffer[y] = f64::INFINITY}
-                WallGridCell::Wall => {self.z_buffer[y] = perp_wall_dist}
+                let sprite_pixels = sprite_data[texture_id].get_image_data();
+
+                for x in draw_start..draw_end {
+                    let tex_x = (tex_pos as usize).clamp(0, tex_width_u - 1);
+                    tex_pos += step;
+
+                    let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
+                    let cv = Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec();
+
+                    let pixel = &mut rd[y * rw + x];
+                    *pixel = Color::from_vec(fog * cv).into();
+                }
+            } else {
+                for x in draw_start..draw_end {
+                    let cv =  BLACK.to_vec();
+                    let pixel = &mut rd[y * rw + x];
+                    *pixel = Color::from_vec(fog * cv).into();
+                }
             }
 
-            let dist_wall = perp_wall_dist;
-            let dist_player = 0.0f64;
-
-            let fog = fog_factor(perp_wall_dist, max_ray_distance) as f32;
-            let color =
-                match hit_type {
-                    WallGridCell::Empty => { BLACK }
-                    WallGridCell::Wall => {
-                        match hit_side {
-                            HitSide::Horizontal => {
-                                if ray_dir.y > 0.0 {
-                                    tex_y = tex_height as usize - tex_y - 1;
-                                    SKYBLUE //top
-                                } else {
-                                    tex_y = tex_height as usize - tex_y - 1;
-                                    DARKGREEN // bottom
-                                }
-                            }
-                            HitSide::Vertical => { BLUE } //side
-                        }
-                    }
-                };
-
+            // Draw walls
             for x in 0..draw_start {
                 let current_dist = w as f64 / (2.0 * x as f64 - w as f64); // This can be a table
                 let weight = (current_dist - dist_player) / (dist_wall - dist_player);
@@ -178,26 +189,7 @@ impl FirstPersonViewer {
                 rd[y * rw + x] = c.into();
                 rd[y * rw + (render_width-1) as usize - x ] = c.into();
             }
-
-            let sprite_pixels = sprite_data[sid].get_image_data();
-
-            for x in draw_start..draw_end {
-                let tex_x = (tex_pos as usize).clamp(0, tex_width_u - 1);
-                tex_pos += step;
-
-                let cv = if hit_type != Empty {
-                    let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
-                    Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec()
-                } else {
-                    BLACK.to_vec()
-                };
-
-                let pixel = &mut rd[y * rw + x];
-                *pixel = Color::from_vec(fog * cv).into();
-            }
         }
-
-
     }
 
     pub fn draw_view_horizontal(
