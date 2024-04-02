@@ -2,6 +2,7 @@ use macroquad::math::{DVec2, IVec2};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use crate::grid2d::{Grid2D, WallGridCell};
+use crate::grid2d::WallGridCell::Empty;
 
 #[derive(PartialEq)]
 pub enum HitSide {

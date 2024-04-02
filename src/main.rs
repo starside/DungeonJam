@@ -54,6 +54,7 @@ struct PlayerState {
     last_key_pressed: Option<KeyCode>,
     mode: PlayerMode,
     look_rotation: f64,
+    horizontal_look_rotation: f64,
     fire_cooldown: f64,
 
     new_player_pos: Option<(i32, i32)>,
@@ -83,6 +84,22 @@ impl PlayerState {
             self.look_rotation = self.look_rotation.max(look_down_max);
         }
     }
+
+    fn player_look_horizonal(&mut self) {
+        let look_up_max: f64 = 3.14/2.0;
+        let look_down_max: f64 = -3.14/2.0;
+        let look_speed: f64 = 1.5; // Time in seconds to cover range
+        let look_range: f64 = look_up_max - look_down_max;
+        let frame_time = get_frame_time() as f64;
+
+        if is_key_down(KeyCode::A) {
+            self.horizontal_look_rotation += look_range/look_speed * frame_time; // Need to use time to animate
+            self.horizontal_look_rotation = self.horizontal_look_rotation.min(look_up_max);
+        } else if is_key_down(KeyCode::D) {
+            self.horizontal_look_rotation -= look_range/look_speed * frame_time;
+            self.horizontal_look_rotation = self.horizontal_look_rotation.max(look_down_max);
+        }
+    }
     fn do_idle_state(&mut self,
                      mobs: &mut Mobs,
                      player_facing: &mut f64,
@@ -104,17 +121,19 @@ impl PlayerState {
         }
 
         self.player_look();
+        self.player_look_horizonal();
+        println!("{}", self.horizontal_look_rotation);
 
         let next_state = match self.last_key_pressed {
             None => {Idle}
             Some(x) => {
                 match &x {
                     KeyCode::A | KeyCode::D => { //Turn around
-                        if *player_facing > 0.0 {
+                        /*if *player_facing > 0.0 {
                             *player_facing = -1.0;
                         } else {
                             *player_facing = 1.0;
-                        }
+                        }*/
                         self.look_rotation = 0.0;
                         Idle
                     }
@@ -421,7 +440,8 @@ async fn main() {
     let mut player_map = level::PlayerMap::new(world.grid.get_size());
 
     let mut game_state = GameState::Start;
-    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0, new_player_pos: None, lerp: 0.0, fire_cooldown: 0.0};
+    let mut player_state = PlayerState{last_key_pressed: None, mode: Idle, look_rotation: 0.0,
+        new_player_pos: None, lerp: 0.0, fire_cooldown: 0.0, horizontal_look_rotation: 0.0};
 
     // Array to store collisions
     let mut collisions: Vec<Collision> = Vec::with_capacity(16);
@@ -718,21 +738,31 @@ async fn main() {
                 collisions.clear();
 
                 // Draw frame
-                let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
-                let texture_bindings = RoomTextureBindings {
-                    floor: 0,
-                    wall: 2,
-                    ceiling: 1
-                };
-                first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale, &texture_bindings, &sprite_images);
-                sprite_manager.draw_sprites(
-                    max_ray_distance,
-                    &sprite_images,
-                    &mut first_person_view,
-                    pos,
-                    view_dir,
-                    player_facing*plane_scale,
-                    world_width as f64);
+                if player_state.horizontal_look_rotation != 0.0 {
+                    let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
+                    let texture_bindings = RoomTextureBindings {
+                        floor: 0,
+                        wall: 2,
+                        ceiling: 1
+                    };
+                    first_person_view.draw_view_horizontal(max_ray_distance, &world, pos, view_dir, plane_scale, &sprite_images);
+                } else {
+                    let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
+                    let texture_bindings = RoomTextureBindings {
+                        floor: 0,
+                        wall: 2,
+                        ceiling: 1
+                    };
+                    first_person_view.draw_view(max_ray_distance, &world, pos, view_dir, plane_scale, &texture_bindings, &sprite_images);
+                    sprite_manager.draw_sprites(
+                        max_ray_distance,
+                        &sprite_images,
+                        &mut first_person_view,
+                        pos,
+                        view_dir,
+                        player_facing*plane_scale,
+                        world_width as f64);
+                }
                 first_person_view.render(screen_size);
 
                 // Draw FPS meter
