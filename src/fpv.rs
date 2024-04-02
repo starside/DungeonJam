@@ -34,8 +34,9 @@ impl FirstPersonViewer {
         let render_image = Image::gen_image_color(width, height, BLACK);
         let render_texture = Texture2D::from_image(&render_image);
         render_texture.set_filter(FilterMode::Nearest);
-        let mut z_buffer: Vec<f64> = Vec::with_capacity(height as usize);
-        for _ in 0..height as usize {
+        let z_size = height.max(width);
+        let mut z_buffer: Vec<f64> = Vec::with_capacity(z_size as usize);
+        for _ in 0..z_size as usize {
             z_buffer.push(f64::INFINITY);
         }
 
@@ -81,8 +82,7 @@ impl FirstPersonViewer {
         ];
 
         for y in 0..(render_height as usize) {
-            let y_d = y as f64;
-            let camera_y =  up*(2.0 * y_d / (render_height as f64) - 1.0);
+            let camera_y =  up*(2.0 * (y as f64) / (render_height as f64) - 1.0);
             let ray_dir_x = dir.x + plane.x * camera_y;
             let ray_dir_y = dir.y + plane.y * camera_y;
             let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
