@@ -1,11 +1,11 @@
-use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, GREEN, SKYBLUE, WHITE};
+use macroquad::color::{BLACK, BLUE, Color, DARKGREEN, GREEN, RED, SKYBLUE, WHITE};
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
 use crate::grid2d::WallGridCell::{Empty, Wall};
 use crate::image::ImageLoader;
 
-use crate::level::{Level, ucoords_to_dvec2};
+use crate::level::{apply_boundary_conditions_f64, Level, ucoords_to_dvec2};
 use crate::mob::MagicColor::Black;
 use crate::raycaster::{cast_ray, HitSide};
 use crate::raycaster::HitSide::{Horizontal, Vertical};
@@ -73,12 +73,13 @@ impl FirstPersonViewer {
             1.0
         };
 
-        let world_size = ucoords_to_dvec2(world.grid.get_size()).as_vec2();
+        let world_size = ucoords_to_dvec2(world.grid.get_size());
 
-        let mut sprite_data: [&Image; 3] = [
+        let mut sprite_data: [&Image; 4] = [
             sprite_manager.get_image(7),
             sprite_manager.get_image(8),
             sprite_manager.get_image(9),
+            sprite_manager.get_image(4),
         ];
 
         for y in 0..(render_height as usize) {
@@ -97,7 +98,7 @@ impl FirstPersonViewer {
 
             // Calculate wall_x
             let wall_hit_coord = pos + perp_wall_dist * ray_dir;
-            let wall_y: f64 = if hit_side == HitSide::Vertical {
+            let wall_y: f64 = if hit_side == Vertical {
                 wall_hit_coord.y - wall_hit_coord.y.floor()
             } else {
                 wall_hit_coord.x - wall_hit_coord.x.floor()
@@ -178,16 +179,45 @@ impl FirstPersonViewer {
                 }
             }
 
+            let wall_pixels = sprite_data[3].get_image_data();
+            let (wall_width, wall_height) = (sprite_data[3].width as usize, sprite_data[3].height as usize);
+
             // Draw walls
             for x in 0..draw_start {
+                let current_dist = w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
+                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
+
+                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
+
+                let uv = apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
+                let u = uv.x / world_size.x;
+                let v = uv.y / world_size.y;
+
+                let tex_x = (((wall_width - 1) as f64 * u) as usize);
+                let tex_y = (((wall_height - 1) as f64 * v) as usize);
+
+                let cvp = wall_pixels[tex_y * wall_width + tex_x];
+
+                rd[y * rw + x] = cvp.into();
+            }
+
+            // Draw walls
+            for x in draw_end..render_width as usize {
                 let current_dist = w as f64 / (2.0 * x as f64 - w as f64); // This can be a table
                 let weight = (current_dist - dist_player) / (dist_wall - dist_player);
+
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
-                let v = 1.0-current_floor_pos.y as f32 / world_size.y;
-                let d = 1.0-(current_floor_pos.distance(pos) as f32 / world_size.x);
-                let c = Color::new(0.8*v*d, 0.8*v*d, v*d, 1.0);
-                rd[y * rw + x] = c.into();
-                rd[y * rw + (render_width-1) as usize - x ] = c.into();
+
+                let uv = apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
+                let u = 1.0 - uv.x / world_size.x;
+                let v = uv.y / world_size.y;
+
+                let tex_x = ((wall_width as f64 * u) as usize) % wall_width;
+                let tex_y = ((wall_height as f64 * v) as usize) % wall_height;
+
+
+                let cvp = wall_pixels[tex_y * wall_width + tex_x];
+                rd[y * rw + x] = cvp.into();
             }
         }
     }

@@ -121,19 +121,18 @@ impl PlayerState {
         }
 
         self.player_look();
-        self.player_look_horizonal();
-        println!("{}", self.horizontal_look_rotation);
+        //self.player_look_horizonal();
 
         let next_state = match self.last_key_pressed {
             None => {Idle}
             Some(x) => {
                 match &x {
                     KeyCode::A | KeyCode::D => { //Turn around
-                        /*if *player_facing > 0.0 {
+                        if *player_facing > 0.0 {
                             *player_facing = -1.0;
                         } else {
                             *player_facing = 1.0;
-                        }*/
+                        }
                         self.look_rotation = 0.0;
                         Idle
                     }
