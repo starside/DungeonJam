@@ -7,6 +7,7 @@ use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
 
 use crate::level::{apply_boundary_conditions_f64, ucoords_to_dvec2, Level};
 use crate::mob::MagicColor::Black;
+use crate::physics::wrap_double_norm;
 use crate::raycaster::HitSide::{Horizontal, Vertical};
 use crate::raycaster::{cast_ray, HitSide};
 use crate::WallGridCell;
@@ -29,6 +30,7 @@ pub struct RoomTextureBindings {
     pub ceiling: SpriteId,
 }
 
+#[derive(Clone, Copy)]
 pub struct WallTextureBindings {
     pub left: SpriteId,
     pub right: SpriteId,
@@ -83,6 +85,30 @@ impl FirstPersonViewer {
             sprite_manager.get_image(9),
             sprite_manager.get_image(4),
         ];
+
+        let wall_texture_bindings = if dir_x_sign > 0.0 {
+            *wall_texture_bindings
+        } else {
+            WallTextureBindings {
+                left: wall_texture_bindings.right,
+                right: wall_texture_bindings.left,
+                pin: wall_texture_bindings.pin,
+            }
+        };
+
+        let left_wall_image = sprite_manager.get_image(wall_texture_bindings.left);
+        let (left_wall_pixels, left_wall_width, left_wall_height) = (
+            left_wall_image.get_image_data(),
+            left_wall_image.width as usize,
+            left_wall_image.height as usize,
+        );
+
+        let right_wall_image = sprite_manager.get_image(wall_texture_bindings.right);
+        let (right_wall_pixels, right_wall_width, right_wall_height) = (
+            right_wall_image.get_image_data(),
+            right_wall_image.width as usize,
+            right_wall_image.height as usize,
+        );
 
         for y in 0..(render_height as usize) {
             let camera_y = up * (2.0 * (y as f64) / (render_height as f64) - 1.0);
@@ -180,20 +206,6 @@ impl FirstPersonViewer {
                 }
             }
 
-            let left_wall_image = sprite_manager.get_image(wall_texture_bindings.left);
-            let (left_wall_pixels, left_wall_width, left_wall_height) = (
-                left_wall_image.get_image_data(),
-                left_wall_image.width as usize,
-                left_wall_image.height as usize,
-            );
-
-            let right_wall_image = sprite_manager.get_image(wall_texture_bindings.right);
-            let (right_wall_pixels, right_wall_width, right_wall_height) = (
-                right_wall_image.get_image_data(),
-                right_wall_image.width as usize,
-                right_wall_image.height as usize,
-            );
-
             // Draw walls
             for x in 0..draw_start {
                 let current_dist = w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
@@ -201,19 +213,23 @@ impl FirstPersonViewer {
 
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 
-                let distx = (current_floor_pos - pos).dot(DVec2::new(dir_x_sign, 0.0));
+                let distx = (current_floor_pos - pos).dot(DVec2::new(-1.0, 0.0));
                 let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, 1.0));
 
-                let u = distx.abs() / max_ray_distance;
-                let v = disty.abs() / max_ray_distance;
+                let u = wrap_double_norm(distx.abs() / max_ray_distance);
+                let v = wrap_double_norm(disty.abs() / max_ray_distance);
+
+                if y == 640 / 4 && x == 240 {
+                    println!("{} {}", distx, disty);
+                }
 
                 // Left wall tex coords
-                let left_tex_x = (((left_wall_width - 1) as f64 * u) as usize);
-                let left_tex_y = (((left_wall_height - 1) as f64 * v) as usize);
+                let left_tex_x = ((left_wall_width - 1) as f64 * u) as usize;
+                let left_tex_y = ((left_wall_height - 1) as f64 * v) as usize;
 
                 // Right wall tex coords
-                let right_tex_x = (((right_wall_width - 1) as f64 * u) as usize);
-                let right_tex_y = (((right_wall_height - 1) as f64 * v) as usize);
+                let right_tex_x = ((right_wall_width - 1) as f64 * u) as usize;
+                let right_tex_y = ((right_wall_height - 1) as f64 * v) as usize;
 
                 let left_wall_color = left_wall_pixels[left_tex_y * left_wall_width + left_tex_x];
                 let right_wall_color =

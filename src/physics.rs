@@ -12,6 +12,7 @@ mod tests {
     fn test_wrap_double() {
         assert_eq!(wrap_double_norm(0.0), 0.0);
         assert_eq!(wrap_double_norm(1.0), 0.0);
-        assert_eq!(wrap_double_norm(2.5), 0.5);
+        assert_eq!(wrap_double_norm(6.5), 0.5);
+        assert_eq!(wrap_double_norm(-6.5), -0.5);
     }
 }

@@ -892,8 +892,8 @@ async fn main() {
                         ceiling: 1,
                     };
                     let wall_bindings = WallTextureBindings {
-                        left: 0,
-                        right: 1,
+                        left: 4,
+                        right: 5,
                         pin: true,
                     };
                     first_person_view.draw_view(
