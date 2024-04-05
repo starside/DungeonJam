@@ -213,15 +213,11 @@ impl FirstPersonViewer {
 
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 
-                let distx = (current_floor_pos - pos).dot(DVec2::new(-1.0, 0.0));
+                let distx = (current_floor_pos - pos).dot(DVec2::new(dir_x_sign, 0.0));
                 let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, 1.0));
 
-                let u = wrap_double_norm(distx.abs() / max_ray_distance);
-                let v = wrap_double_norm(disty.abs() / max_ray_distance);
-
-                if y == 640 / 4 && x == 240 {
-                    println!("{} {}", distx, disty);
-                }
+                let u = wrap_double_norm(distx / max_ray_distance);
+                let v = wrap_double_norm(disty / max_ray_distance);
 
                 // Left wall tex coords
                 let left_tex_x = ((left_wall_width - 1) as f64 * u) as usize;
