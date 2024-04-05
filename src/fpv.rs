@@ -31,10 +31,16 @@ pub struct RoomTextureBindings {
 }
 
 #[derive(Clone, Copy)]
-pub struct WallTextureBindings {
-    pub left: SpriteId,
-    pub right: SpriteId,
+pub struct WallTextureBinding {
+    pub sprite_id: SpriteId,
+    pub repeat_speed: f64,
     pub pin: bool,
+}
+
+#[derive(Clone, Copy)]
+pub struct WallTextureBindings {
+    pub left: WallTextureBinding,
+    pub right: WallTextureBinding,
 }
 
 impl FirstPersonViewer {
@@ -73,11 +79,25 @@ impl FirstPersonViewer {
         wall_texture_bindings: &WallTextureBindings,
         sprite_manager: &ImageLoader,
     ) {
+        let world_size = ucoords_to_dvec2(world.grid.get_size());
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
         let rd = self.render_image.get_image_data_mut();
         let dir_x_sign = dir.x / dir.x.abs();
         let up = if dir.x >= 0.0 { -1.0 } else { 1.0 };
+
+        // Independent walls are not yet supported
+        debug_assert_eq!(
+            wall_texture_bindings.left.repeat_speed,
+            wall_texture_bindings.right.repeat_speed
+        );
+        debug_assert_eq!(
+            wall_texture_bindings.left.pin,
+            wall_texture_bindings.right.pin
+        );
+
+        let wall_pin = wall_texture_bindings.left.pin;
+        let wall_speed = dir_x_sign * wall_texture_bindings.left.repeat_speed;
 
         let mut sprite_data: [&Image; 4] = [
             sprite_manager.get_image(7),
@@ -92,18 +112,17 @@ impl FirstPersonViewer {
             WallTextureBindings {
                 left: wall_texture_bindings.right,
                 right: wall_texture_bindings.left,
-                pin: wall_texture_bindings.pin,
             }
         };
 
-        let left_wall_image = sprite_manager.get_image(wall_texture_bindings.left);
+        let left_wall_image = sprite_manager.get_image(wall_texture_bindings.left.sprite_id);
         let (left_wall_pixels, left_wall_width, left_wall_height) = (
             left_wall_image.get_image_data(),
             left_wall_image.width as usize,
             left_wall_image.height as usize,
         );
 
-        let right_wall_image = sprite_manager.get_image(wall_texture_bindings.right);
+        let right_wall_image = sprite_manager.get_image(wall_texture_bindings.right.sprite_id);
         let (right_wall_pixels, right_wall_width, right_wall_height) = (
             right_wall_image.get_image_data(),
             right_wall_image.width as usize,
@@ -213,11 +232,18 @@ impl FirstPersonViewer {
 
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 
-                let distx = (current_floor_pos - pos).dot(DVec2::new(dir_x_sign, 0.0));
-                let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, 1.0));
-
-                let u = wrap_double_norm(distx / max_ray_distance);
-                let v = wrap_double_norm(disty / max_ray_distance);
+                let (u, v) = if !wall_pin {
+                    let uv =
+                        apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
+                    (1.0 - uv.x / world_size.x, uv.y / world_size.y)
+                } else {
+                    let distx = (current_floor_pos - pos).dot(DVec2::new(wall_speed, 0.0));
+                    let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, 1.0));
+                    (
+                        wrap_double_norm(distx / max_ray_distance),
+                        wrap_double_norm(disty / max_ray_distance),
+                    )
+                };
 
                 // Left wall tex coords
                 let left_tex_x = ((left_wall_width - 1) as f64 * u) as usize;

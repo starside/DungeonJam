@@ -1,5 +1,6 @@
 extern crate rand;
 
+use fpv::WallTextureBinding;
 use macroquad::color;
 use macroquad::math::f64;
 use macroquad::miniquad::window;
@@ -892,9 +893,16 @@ async fn main() {
                         ceiling: 1,
                     };
                     let wall_bindings = WallTextureBindings {
-                        left: 4,
-                        right: 5,
-                        pin: true,
+                        left: WallTextureBinding {
+                            sprite_id: 4,
+                            repeat_speed: 8.0,
+                            pin: true,
+                        },
+                        right: WallTextureBinding {
+                            sprite_id: 5,
+                            repeat_speed: 8.0,
+                            pin: true,
+                        },
                     };
                     first_person_view.draw_view(
                         max_ray_distance,
