@@ -162,7 +162,7 @@ impl Sprites {
                                 [   (s[0] as f32 * fog_f32) as u8,
                                     (s[1] as f32 * fog_f32) as u8,
                                     (s[2] as f32 * fog_f32) as u8,
-                                    (s[3] as f32 * fog_f32) as u8
+                                    255 as u8
                                 ];
                         } else if d2 > shield_start2 && d2 < shield_end2 {
                             rd[y * rw + x] = shield_color;

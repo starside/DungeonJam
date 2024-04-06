@@ -205,16 +205,16 @@ impl FirstPersonViewer {
                     tex_pos += step;
 
                     let cvp = wall_pixels[tex_y * tex_height_u + tex_x];
-                    let cv = Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec();
+                    let cv = Color::from_rgba(cvp[0], cvp[1], cvp[2], 255).to_vec();
 
                     let pixel = &mut rd[y * rw + x];
-                    *pixel = Color::from_vec(fog * cv).into();
+                    *pixel = Color::new(cv.x * fog, cv.y * fog, cv.z * fog, 1.0).into();
                 }
             } else {
                 for x in draw_start..draw_end {
                     let cv = BLACK.to_vec();
                     let pixel = &mut rd[y * rw + x];
-                    *pixel = Color::from_vec(fog * cv).into();
+                    *pixel = Color::from_vec(cv).into();
                 }
             }
 
