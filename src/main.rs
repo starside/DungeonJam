@@ -1,3 +1,4 @@
+#![allow(warnings)]
 extern crate rand;
 
 use fpv::WallTextureBinding;
@@ -43,6 +44,7 @@ enum GameState {
     Start,
     Debug,
     FirstPerson,
+    FirstPersonHorizonal,
     LevelEditor,
     PlayerMap,
     Win,
@@ -91,8 +93,8 @@ impl PlayerState {
     }
 
     fn player_look_horizonal(&mut self) {
-        let look_up_max: f64 = 3.14 / 2.0;
-        let look_down_max: f64 = -3.14 / 2.0;
+        let look_up_max: f64 = 3.14;
+        let look_down_max: f64 = -3.14;
         let look_speed: f64 = 1.5; // Time in seconds to cover range
         let look_range: f64 = look_up_max - look_down_max;
         let frame_time = get_frame_time() as f64;
@@ -128,7 +130,6 @@ impl PlayerState {
         }
 
         self.player_look();
-        //self.player_look_horizonal();
 
         let next_state = match self.last_key_pressed {
             None => Idle,
@@ -491,6 +492,7 @@ async fn main() {
 
     // Set up low resolution renderer
     let mut first_person_view = fpv::FirstPersonViewer::new(RENDER_WIDTH, RENDER_HEIGHT);
+    let mut first_person_view_horizontal = fpv::FirstPersonViewer::new(RENDER_WIDTH, RENDER_HEIGHT);
 
     // Translate player starting position to world vector coords.
     // These are the gameplay variables, the others should not be modified directly
@@ -601,10 +603,43 @@ async fn main() {
                 }
             }
 
+            GameState::FirstPersonHorizonal => {
+                let mut h_world = Level::new(None, 3, 1);
+                h_world.grid.zero();
+                let walls: [(i32, i32); 2] = [(0, 0), (2, 0)];
+                for wall in walls {
+                    h_world
+                        .grid
+                        .set_cell_at_grid_coords_int(IVec2::from(wall), WallGridCell::Wall);
+                }
+                let h_pos = world_space_centered_coord((1, 0), 0.0, 0.0);
+
+                player_state.player_look_horizonal();
+                let view_dir = calculate_view_dir(player_state.horizontal_look_rotation, 1.0);
+                first_person_view_horizontal.draw_view_horizontal(
+                    2.0,
+                    &h_world,
+                    h_pos,
+                    view_dir,
+                    1.0,
+                    0.5,
+                    &first_person_view,
+                );
+                first_person_view_horizontal.render(screen_size);
+
+                // Draw FPS meter
+                let fps = get_fps();
+                draw_text(format!("{}", fps).as_str(), 20.0, 400.0, 30.0, DARKGRAY);
+            }
+
             GameState::FirstPerson => {
                 // Read last keypress
                 let last_key_pressed = get_last_key_pressed();
                 player_state.last_key_pressed = last_key_pressed;
+
+                if last_key_pressed == Some(KeyCode::LeftShift) {
+                    game_state = GameState::FirstPersonHorizonal;
+                }
 
                 // Cooldown player attack
                 player_state.fire_cooldown = player_state.fire_cooldown.clamp(0.0, fire_cooldown);
@@ -872,60 +907,44 @@ async fn main() {
                 collisions.clear();
 
                 // Draw frame
-                if player_state.horizontal_look_rotation != 0.0 {
-                    let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
-                    let texture_bindings = RoomTextureBindings {
-                        floor: 0,
-                        wall: 2,
-                        ceiling: 1,
-                    };
-                    first_person_view.draw_view_horizontal(
-                        max_ray_distance,
-                        &world,
-                        pos,
-                        view_dir,
-                        plane_scale,
-                        &sprite_images,
-                    );
-                } else {
-                    let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
-                    let texture_bindings = RoomTextureBindings {
-                        floor: 0,
-                        wall: 2,
-                        ceiling: 1,
-                    };
-                    let wall_bindings = WallTextureBindings {
-                        left: WallTextureBinding {
-                            sprite_id: 10,
-                            repeat_speed: 8.0,
-                            pin: true,
-                        },
-                        right: WallTextureBinding {
-                            sprite_id: 11,
-                            repeat_speed: 8.0,
-                            pin: true,
-                        },
-                    };
-                    first_person_view.draw_view(
-                        max_ray_distance,
-                        &world,
-                        pos,
-                        view_dir,
-                        plane_scale,
-                        &texture_bindings,
-                        &wall_bindings,
-                        &sprite_images,
-                    );
-                    sprite_manager.draw_sprites(
-                        max_ray_distance,
-                        &sprite_images,
-                        &mut first_person_view,
-                        pos,
-                        view_dir,
-                        player_facing * plane_scale,
-                        world_width as f64,
-                    );
-                }
+                let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
+                let texture_bindings = RoomTextureBindings {
+                    floor: 7,
+                    wall: 9,
+                    ceiling: 8,
+                };
+                let wall_bindings = WallTextureBindings {
+                    left: WallTextureBinding {
+                        sprite_id: 10,
+                        repeat_speed: 8.0,
+                        pin: true,
+                    },
+                    right: WallTextureBinding {
+                        sprite_id: 11,
+                        repeat_speed: 8.0,
+                        pin: true,
+                    },
+                };
+                first_person_view.draw_view(
+                    max_ray_distance,
+                    &world,
+                    pos,
+                    view_dir,
+                    plane_scale,
+                    &texture_bindings,
+                    &wall_bindings,
+                    &sprite_images,
+                );
+                sprite_manager.draw_sprites(
+                    max_ray_distance,
+                    &sprite_images,
+                    &mut first_person_view,
+                    pos,
+                    view_dir,
+                    player_facing * plane_scale,
+                    world_width as f64,
+                );
+
                 first_person_view.render(screen_size);
 
                 // Draw FPS meter

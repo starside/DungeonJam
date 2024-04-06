@@ -99,13 +99,6 @@ impl FirstPersonViewer {
         let wall_pin = wall_texture_bindings.left.pin;
         let wall_speed = wall_texture_bindings.left.repeat_speed;
 
-        let mut sprite_data: [&Image; 4] = [
-            sprite_manager.get_image(7),
-            sprite_manager.get_image(8),
-            sprite_manager.get_image(9),
-            sprite_manager.get_image(4),
-        ];
-
         let wall_texture_bindings = if dir_x_sign > 0.0 {
             *wall_texture_bindings
         } else {
@@ -180,10 +173,10 @@ impl FirstPersonViewer {
             };
 
             if let Some(texture_id) = sid {
-                let tex_width_u = sprite_data[texture_id].width as usize;
-                let tex_height_u = sprite_data[texture_id].height as usize;
-                let tex_width = sprite_data[texture_id].width as f64;
-                let tex_height = sprite_data[texture_id].height as f64;
+                let tex_width_u = sprite_manager.get_image(texture_id).width as usize;
+                let tex_height_u = sprite_manager.get_image(texture_id).height as usize;
+                let tex_width = sprite_manager.get_image(texture_id).width as f64;
+                let tex_height = sprite_manager.get_image(texture_id).height as f64;
 
                 // Calculate texY
                 let mut tex_y = (wall_y * tex_height) as usize;
@@ -205,13 +198,13 @@ impl FirstPersonViewer {
                     }
                 }
 
-                let sprite_pixels = sprite_data[texture_id].get_image_data();
+                let wall_pixels = sprite_manager.get_image(texture_id).get_image_data();
 
                 for x in draw_start..draw_end {
                     let tex_x = (tex_pos as usize).clamp(0, tex_width_u - 1);
                     tex_pos += step;
 
-                    let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
+                    let cvp = wall_pixels[tex_y * tex_height_u + tex_x];
                     let cv = Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec();
 
                     let pixel = &mut rd[y * rw + x];
@@ -284,25 +277,6 @@ impl FirstPersonViewer {
                 rd[y * rw + x] = Color::from_vec(lc).into();
                 rd[y * rw + (render_width as usize - 1 - x)] = Color::from_vec(rc).into();
             }
-
-            // Draw walls
-            /*for x in draw_end..render_width as usize {
-                let current_dist = w as f64 / (2.0 * x as f64 - w as f64); // This can be a table
-                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
-
-                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
-
-                let uv = apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
-                let u = 1.0 - uv.x / world_size.x;
-                let v = uv.y / world_size.y;
-
-                let tex_x = ((wall_width as f64 * u) as usize) % wall_width;
-                let tex_y = ((wall_height as f64 * v) as usize) % wall_height;
-
-
-                let cvp = wall_pixels[tex_y * wall_width + tex_x];
-                rd[y * rw + x] = cvp.into();
-            }*/
         }
     }
 
@@ -313,7 +287,8 @@ impl FirstPersonViewer {
         pos: DVec2,
         dir: DVec2,
         plane_scale: f64,
-        sprite_manager: &ImageLoader,
+        distance_scale: f64,
+        front_image: &Self,
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -321,23 +296,15 @@ impl FirstPersonViewer {
 
         let world_size = ucoords_to_dvec2(world.grid.get_size()).as_vec2();
 
-        let mut sprite_data: [&Image; 3] = [
-            sprite_manager.get_image(0),
-            sprite_manager.get_image(1),
-            sprite_manager.get_image(2),
-        ];
-
-        for x_NEW in 0..(render_width as usize) {
-            let x_d = x_NEW as f64;
+        for x in 0..(render_width as usize) {
+            let x_d = x as f64;
             let camera_x = (2.0 * x_d / (render_width as f64) - 1.0);
-            let ray_dir_x = dir.x + plane.x * camera_x;
-            let ray_dir_y = dir.y + plane.y * camera_x;
-            let ray_dir = DVec2::from((ray_dir_x, ray_dir_y));
+            let ray_dir = DVec2::from((dir.x + plane.x * camera_x, dir.y + plane.y * camera_x));
 
             let (perp_wall_dist, hit_type, hit_side, map_coord) =
                 cast_ray(&world.grid, &pos, &ray_dir, max_ray_distance);
             let h = render_height as i32;
-            let line_height = (h as f64 / perp_wall_dist) as i32;
+            let line_height = (h as f64 / (perp_wall_dist / distance_scale)) as i32;
             let draw_start = 0.max((-line_height / 2) + (h / 2)) as usize;
             let draw_end = h.min(line_height / 2 + h / 2) as usize;
             let rh = render_height as usize;
@@ -353,13 +320,13 @@ impl FirstPersonViewer {
             // tex size
             let sid = 0;
 
-            let tex_width_u = sprite_data[sid].width as usize;
-            let tex_height_u = sprite_data[sid].height as usize;
-            let tex_width = sprite_data[sid].width as f64;
-            let tex_height = sprite_data[sid].height as f64;
+            let tex_width_u = front_image.render_image.width as usize;
+            let tex_height_u = front_image.render_image.height as usize;
+            let tex_width = front_image.render_image.width as f64;
+            let tex_height = front_image.render_image.height as f64;
 
-            // Calculate texY
-            let mut tex_x = (wall_x * tex_height) as usize;
+            // Calculate textX
+            let mut tex_x = (wall_x * tex_width) as usize;
             if hit_side == Vertical && dir.x < 0.0 {
                 tex_x = tex_width as usize - tex_x - 1;
             } // The ifs may need to change
@@ -376,8 +343,8 @@ impl FirstPersonViewer {
 
             // Store z buffer
             match hit_type {
-                WallGridCell::Empty => self.z_buffer[x_NEW] = f64::INFINITY,
-                WallGridCell::Wall => self.z_buffer[x_NEW] = perp_wall_dist,
+                WallGridCell::Empty => self.z_buffer[x] = f64::INFINITY,
+                WallGridCell::Wall => self.z_buffer[x] = perp_wall_dist,
             }
 
             let dist_wall = perp_wall_dist;
@@ -391,26 +358,26 @@ impl FirstPersonViewer {
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
                 let v = 1.0 - current_floor_pos.y as f32 / world_size.y;
                 let d = 1.0 - (current_floor_pos.distance(pos) as f32 / world_size.x);
-                let c = Color::new(0.8 * v * d, 0.8 * v * d, v * d, 1.0);
-                rd[y * render_width as usize + x_NEW] = c.into();
-                rd[(render_height as usize - 1 - y) * render_width as usize + x_NEW] = c.into();
+                let c = Color::new(0.8, 0.8, 0.8, 1.0);
+                rd[y * render_width as usize + x] = c.into();
+                rd[(render_height as usize - 1 - y) * render_width as usize + x] = c.into();
             }
 
-            let sprite_pixels = sprite_data[sid].get_image_data();
+            let sprite_pixels = front_image.render_image.get_image_data();
 
             for y in draw_start..draw_end {
                 let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
                 tex_pos += step;
 
                 let cv = if hit_type != Empty {
-                    let cvp = sprite_pixels[tex_y * tex_height_u + tex_x];
-                    Color::from_rgba(cvp[0], cvp[1], cvp[2], cvp[3]).to_vec()
+                    let cvp = sprite_pixels[tex_y * tex_width_u + tex_x];
+                    Color::from_rgba(cvp[0], cvp[1], cvp[2], 255).to_vec()
                 } else {
                     BLACK.to_vec()
                 };
 
-                let pixel = &mut rd[y * render_width as usize + x_NEW];
-                *pixel = Color::from_vec(fog * cv).into();
+                let pixel = &mut rd[y * render_width as usize + x];
+                *pixel = Color::from_vec(cv).into();
             }
         }
     }
