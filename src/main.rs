@@ -444,6 +444,8 @@ async fn main() {
         "sprites/steelfloor7.png".to_string(),     //7
         "sprites/lightwall.png".to_string(),       //8
         "sprites/pezwall.png".to_string(),         //9
+        "sprites/sf5.png".to_string(),             //10
+        "sprites/sf6.png".to_string(),             //11
     ];
 
     let mut flavor_image_files = vec![
@@ -894,12 +896,12 @@ async fn main() {
                     };
                     let wall_bindings = WallTextureBindings {
                         left: WallTextureBinding {
-                            sprite_id: 4,
+                            sprite_id: 10,
                             repeat_speed: 8.0,
                             pin: true,
                         },
                         right: WallTextureBinding {
-                            sprite_id: 5,
+                            sprite_id: 11,
                             repeat_speed: 8.0,
                             pin: true,
                         },

@@ -97,7 +97,7 @@ impl FirstPersonViewer {
         );
 
         let wall_pin = wall_texture_bindings.left.pin;
-        let wall_speed = dir_x_sign * wall_texture_bindings.left.repeat_speed;
+        let wall_speed = wall_texture_bindings.left.repeat_speed;
 
         let mut sprite_data: [&Image; 4] = [
             sprite_manager.get_image(7),
@@ -237,8 +237,9 @@ impl FirstPersonViewer {
                         apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
                     (1.0 - uv.x / world_size.x, uv.y / world_size.y)
                 } else {
-                    let distx = (current_floor_pos - pos).dot(DVec2::new(wall_speed, 0.0));
-                    let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, 1.0));
+                    let distx =
+                        (current_floor_pos - pos).dot(DVec2::new(wall_speed * dir_x_sign, 0.0));
+                    let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, wall_speed));
                     (
                         wrap_double_norm(distx / max_ray_distance),
                         wrap_double_norm(disty / max_ray_distance),
@@ -257,8 +258,31 @@ impl FirstPersonViewer {
                 let right_wall_color =
                     right_wall_pixels[right_tex_y * right_wall_width + right_tex_x];
 
-                rd[y * rw + x] = left_wall_color.into();
-                rd[y * rw + (render_width as usize - 1 - x)] = right_wall_color.into();
+                let wall_fog = fog_factor(current_dist, max_ray_distance) as f32;
+
+                let mut lc = Color::from_rgba(
+                    left_wall_color[0],
+                    left_wall_color[1],
+                    left_wall_color[2],
+                    left_wall_color[3],
+                )
+                .to_vec()
+                    * wall_fog;
+
+                let mut rc = Color::from_rgba(
+                    right_wall_color[0],
+                    right_wall_color[1],
+                    right_wall_color[2],
+                    right_wall_color[3],
+                )
+                .to_vec()
+                    * wall_fog;
+
+                lc.w = 1.0;
+                rc.w = 1.0;
+
+                rd[y * rw + x] = Color::from_vec(lc).into();
+                rd[y * rw + (render_width as usize - 1 - x)] = Color::from_vec(rc).into();
             }
 
             // Draw walls
