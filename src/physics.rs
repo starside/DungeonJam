@@ -1,5 +1,9 @@
 pub fn wrap_double_norm(val: f64) -> f64 {
-    (val % 1.0).abs()
+    if val < 0.0 {
+        1.0 - (val % 1.0).abs()
+    } else {
+        (val % 1.0).abs()
+    }
 }
 
 #[cfg(test)]
@@ -11,6 +15,6 @@ mod tests {
         assert_eq!(wrap_double_norm(0.0), 0.0);
         assert_eq!(wrap_double_norm(1.0), 0.0);
         assert_eq!(wrap_double_norm(6.5), 0.5);
-        assert_eq!(wrap_double_norm(-6.5), 0.5);
+        assert_eq!(wrap_double_norm(-6.4), 0.6);
     }
 }
