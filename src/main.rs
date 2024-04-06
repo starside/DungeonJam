@@ -473,7 +473,7 @@ async fn main() {
 
     let max_ray_distance: f64 = 16.0;
     let (world_width, world_height) = (16usize, 64usize);
-    let mut world = Level::new("level.json", world_width, world_height);
+    let mut world = Level::new(Some("level.json"), world_width, world_height);
 
     // Mob grid
     let mut mob_grid: Grid2D<MobId> = Grid2D::new(world_width, world_height);

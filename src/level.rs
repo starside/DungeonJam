@@ -22,36 +22,45 @@ pub struct Level {
     pub grid: Grid2D<WallGridCell>,
     pub mob_list: Vec<(i32, i32)>, // For now assume monster type
     pub flavor_sprites: Option<Vec<(f64, f64, usize)>>,
-    filename: String
+    filename: Option<String>
 }
 
 impl Level
 {
-    pub fn new(level_name: &str, world_width: usize, world_height: usize) -> Self {
+    pub fn new(level_name: Option<&str>, world_width: usize, world_height: usize) -> Self {
 
         let grid = Grid2D::new(world_width, world_height);
+
+        let filename = if let Some(s) = level_name {
+            Some(s.to_string())
+        } else {
+            None
+        };
+
         let mut new_level = Level {
             player_start: (8, 8),
             win_room: (world_width / 4, 0),
             grid,
-            filename: level_name.to_string(),
+            filename,
             mob_list: Vec::new(),
             flavor_sprites: None
         };
 
-        match new_level.load_from_file(level_name) {
-            Ok(_) => {
-                println!("Loaded {}", level_name);
-            }
-            Err(x) => {
-                println!("Level {} could not be loaded ({}), generating random", level_name, x);
-                new_level.grid.zero();
-                match new_level.save_to_file(level_name) {
-                    Ok(_) => {
-                        println!("Saved random level to {}", level_name);
-                    }
-                    Err(x) => {
-                        println!("Failed to save random data to {} because ({})", level_name, x);
+        if let Some(level_name) = level_name {
+            match new_level.load_from_file(level_name) {
+                Ok(_) => {
+                    println!("Loaded {}", level_name);
+                }
+                Err(x) => {
+                    println!("Level {} could not be loaded ({}), generating random", level_name, x);
+                    new_level.grid.zero();
+                    match new_level.save_to_file(level_name) {
+                        Ok(_) => {
+                            println!("Saved random level to {}", level_name);
+                        }
+                        Err(x) => {
+                            println!("Failed to save random data to {} because ({})", level_name, x);
+                        }
                     }
                 }
             }
@@ -96,13 +105,27 @@ impl Level
     }
 
     pub fn load(&mut self) -> Result<(), std::io::Error> {
-        let f = &self.filename.clone();
-        self.load_from_file(f)
+        match self.filename.clone() {
+            None => {
+                return Err(std::io::Error::new(ErrorKind::Other, "No filename provided"));
+            }
+            Some(f) => {
+                self.load_from_file(f.as_str())?;
+                Ok(())
+            }
+        }
     }
 
     pub fn save(&self) -> Result<(), std::io::Error> {
-        let f = &self.filename;
-        self.save_to_file(f)
+        match self.filename.clone() {
+            None => {
+                return Err(std::io::Error::new(ErrorKind::Other, "No filename provided"));
+            }
+            Some(f) => {
+                self.save_to_file(f.as_str());
+                Ok(())
+            }
+        }
     }
 }
 
