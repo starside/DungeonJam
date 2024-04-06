@@ -486,7 +486,7 @@ async fn main() {
     }
 
     // Camera plane scaling factor
-    let plane_scale = -1.05;
+    let plane_scale = -0.5;
 
     let mut debug_view = debug::DebugView::default();
 
@@ -604,20 +604,20 @@ async fn main() {
             }
 
             GameState::FirstPersonHorizonal => {
-                let mut h_world = Level::new(None, 3, 1);
+                let mut h_world = Level::new(None, 2 * (max_ray_distance as usize) + 1, 1);
                 h_world.grid.zero();
-                let walls: [(i32, i32); 2] = [(0, 0), (2, 0)];
+                /*let walls: [(i32, i32); 2] = [(14, 0), (17, 0)];
                 for wall in walls {
                     h_world
                         .grid
                         .set_cell_at_grid_coords_int(IVec2::from(wall), WallGridCell::Wall);
-                }
-                let h_pos = world_space_centered_coord((1, 0), 0.0, 0.0);
+                        }*/
+                let h_pos = world_space_centered_coord((max_ray_distance as i32, 0), 0.0, 0.0);
 
                 player_state.player_look_horizonal();
                 let view_dir = calculate_view_dir(player_state.horizontal_look_rotation, 1.0);
                 first_person_view_horizontal.draw_view_horizontal(
-                    2.0,
+                    max_ray_distance,
                     &h_world,
                     h_pos,
                     view_dir,
