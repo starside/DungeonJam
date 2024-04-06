@@ -287,8 +287,9 @@ impl FirstPersonViewer {
         pos: DVec2,
         dir: DVec2,
         plane_scale: f64,
-        distance_scale: f64,
         front_image: &Self,
+        floor_array: &Vec<Option<SpriteId>>,
+        image_manager: &ImageLoader,
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -304,7 +305,7 @@ impl FirstPersonViewer {
             let (perp_wall_dist, hit_type, hit_side, map_coord) =
                 cast_ray(&world.grid, &pos, &ray_dir, max_ray_distance);
             let h = render_height as i32;
-            let line_height = (h as f64 / (perp_wall_dist / distance_scale)) as i32;
+            let line_height = (h as f64 / perp_wall_dist) as i32;
             let draw_start = 0.max((-line_height / 2) + (h / 2)) as usize;
             let draw_end = h.min(line_height / 2 + h / 2) as usize;
             let rh = render_height as usize;
@@ -350,15 +351,34 @@ impl FirstPersonViewer {
             let dist_wall = perp_wall_dist;
             let dist_player = 0.0f64;
 
-            let fog = fog_factor(perp_wall_dist, max_ray_distance) as f32;
-
-            for y in 0..draw_start {
-                let current_dist = h as f64 / (2.0 * y as f64 - h as f64); // This can be a table
-                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
+            for y in draw_end + 1..h as usize {
+                let current_dist = h as f64 / (2.0 * (y as f64) - (h - 1) as f64); // This can be a table
+                let weight = ((current_dist - dist_player) / (dist_wall - dist_player));
                 let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
-                let v = 1.0 - current_floor_pos.y as f32 / world_size.y;
-                let d = 1.0 - (current_floor_pos.distance(pos) as f32 / world_size.x);
-                let c = Color::new(0.8, 0.8, 0.8, 1.0);
+
+                let uv = current_floor_pos;
+                let map_x = uv.x as usize;
+
+                let floor_tile = floor_array[map_x];
+                let c = match floor_tile {
+                    None => BLACK,
+                    Some(tex_id) => {
+                        let floor_tex = image_manager.get_image(tex_id);
+                        let u = 1.0 - uv.y;
+                        let v = 1.0 - (uv.x - map_x as f64);
+
+                        let tex_x = (u * (floor_tex.width() - 1) as f64) as u32;
+                        let tex_y = (v * (floor_tex.height() - 1) as f64) as u32;
+
+                        let fog =
+                            fog_factor(current_floor_pos.distance(pos), max_ray_distance) as f32;
+
+                        let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
+                        cv.w = 1.0;
+                        Color::from_vec(cv)
+                    }
+                };
+
                 rd[y * render_width as usize + x] = c.into();
                 rd[(render_height as usize - 1 - y) * render_width as usize + x] = c.into();
             }

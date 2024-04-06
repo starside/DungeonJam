@@ -1,7 +1,7 @@
 #![allow(warnings)]
 extern crate rand;
 
-use fpv::WallTextureBinding;
+use fpv::{SpriteId, WallTextureBinding};
 use macroquad::color;
 use macroquad::math::f64;
 use macroquad::miniquad::window;
@@ -604,14 +604,28 @@ async fn main() {
             }
 
             GameState::FirstPersonHorizonal => {
-                let mut h_world = Level::new(None, 2 * (max_ray_distance as usize) + 1, 1);
+                let h_world_size = 2 * (max_ray_distance as i32) + 1;
+                let mut h_world = Level::new(None, h_world_size as usize, 1);
+                let mut h_world_floor: Vec<Option<SpriteId>> =
+                    Vec::with_capacity(h_world_size as usize);
                 h_world.grid.zero();
-                /*let walls: [(i32, i32); 2] = [(14, 0), (17, 0)];
-                for wall in walls {
-                    h_world
-                        .grid
-                        .set_cell_at_grid_coords_int(IVec2::from(wall), WallGridCell::Wall);
-                        }*/
+
+                // Populate floor array
+                let current_pos = player_pos.get_pos();
+                for i in 0..h_world_size {
+                    let x = current_pos.x - (h_world_size / 2) + i;
+                    let y = current_pos.y + 1;
+                    let floor_cell = world.grid.get_cell_at_grid_coords_int(IVec2::from((x, y)));
+                    let floor_cell: Option<SpriteId> = match floor_cell {
+                        Some(x) => match x {
+                            WallGridCell::Empty => None,
+                            WallGridCell::Wall => Some(0),
+                        },
+                        None => None,
+                    };
+                    h_world_floor.push(floor_cell);
+                }
+
                 let h_pos = world_space_centered_coord((max_ray_distance as i32, 0), 0.0, 0.0);
 
                 player_state.player_look_horizonal();
@@ -621,9 +635,10 @@ async fn main() {
                     &h_world,
                     h_pos,
                     view_dir,
-                    1.0,
                     0.5,
                     &first_person_view,
+                    &h_world_floor,
+                    &sprite_images,
                 );
                 first_person_view_horizontal.render(screen_size);
 
@@ -909,7 +924,7 @@ async fn main() {
                 // Draw frame
                 let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
                 let texture_bindings = RoomTextureBindings {
-                    floor: 7,
+                    floor: 0,
                     wall: 9,
                     ceiling: 8,
                 };
