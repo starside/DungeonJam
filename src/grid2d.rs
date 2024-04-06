@@ -46,7 +46,7 @@ impl<T: Serialize + DeserializeOwned + Default> Grid2D<T>{
             return None;
         }
         let x = if pos.x < 0 {
-            pos.x.abs() as usize % self.width
+            self.width - ((-1*pos.x) as usize % self.width)
         } else {
             pos.x as usize % self.width
         };
