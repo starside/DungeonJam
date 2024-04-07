@@ -68,6 +68,12 @@ impl FirstPersonViewer {
         }
     }
 
+    pub fn reset_image_buffer(&mut self, color: [u8;4]) {
+        for i in self.render_image.get_image_data_mut() {
+            *i = color;
+        }
+    }
+
     pub fn draw_view(
         &mut self,
         max_ray_distance: f64,
@@ -78,6 +84,8 @@ impl FirstPersonViewer {
         texture_bindings: &RoomTextureBindings,
         wall_texture_bindings: &WallTextureBindings,
         sprite_manager: &ImageLoader,
+        hide_floor_ceiling: bool,
+        hide_walls: bool
     ) {
         let world_size = ucoords_to_dvec2(world.grid.get_size());
         let plane = plane_scale * dir.perp();
@@ -161,10 +169,14 @@ impl FirstPersonViewer {
                 Wall => {
                     match hit_side {
                         Horizontal => {
-                            if ray_dir.y > 0.0 {
-                                Some(texture_bindings.floor)
+                            if hide_floor_ceiling {
+                                None
                             } else {
-                                Some(texture_bindings.ceiling)
+                                if ray_dir.y > 0.0 {
+                                    Some(texture_bindings.floor)
+                                } else {
+                                    Some(texture_bindings.ceiling)
+                                }
                             }
                         }
                         Vertical => Some(texture_bindings.wall), //side
@@ -212,70 +224,71 @@ impl FirstPersonViewer {
                 }
             } else {
                 for x in draw_start..draw_end {
-                    let cv = BLACK.to_vec();
                     let pixel = &mut rd[y * rw + x];
-                    *pixel = Color::from_vec(cv).into();
+                    *pixel = Color::new(0.0, 0.0, 0.0, 0.0).into(); // can optimize
                 }
             }
 
             // Draw walls
-            for x in 0..draw_start {
-                let current_dist = w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
-                let weight = (current_dist - dist_player) / (dist_wall - dist_player);
+            if !hide_walls {
+                for x in 0..draw_start {
+                    let current_dist = w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
+                    let weight = (current_dist - dist_player) / (dist_wall - dist_player);
 
-                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
+                    let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 
-                let (u, v) = if !wall_pin {
-                    let uv =
-                        apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
-                    (1.0 - uv.x / world_size.x, uv.y / world_size.y)
-                } else {
-                    let distx =
-                        (current_floor_pos - pos).dot(DVec2::new(wall_speed * dir_x_sign, 0.0));
-                    let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, wall_speed));
-                    (
-                        wrap_double_norm(distx / max_ray_distance),
-                        wrap_double_norm(disty / max_ray_distance),
+                    let (u, v) = if !wall_pin {
+                        let uv =
+                            apply_boundary_conditions_f64(current_floor_pos, world.grid.get_size());
+                        (1.0 - uv.x / world_size.x, uv.y / world_size.y)
+                    } else {
+                        let distx =
+                            (current_floor_pos - pos).dot(DVec2::new(wall_speed * dir_x_sign, 0.0));
+                        let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, wall_speed));
+                        (
+                            wrap_double_norm(distx / max_ray_distance),
+                            wrap_double_norm(disty / max_ray_distance),
+                        )
+                    };
+
+                    // Left wall tex coords
+                    let left_tex_x = ((left_wall_width - 1) as f64 * u) as usize;
+                    let left_tex_y = ((left_wall_height - 1) as f64 * v) as usize;
+
+                    // Right wall tex coords
+                    let right_tex_x = ((right_wall_width - 1) as f64 * u) as usize;
+                    let right_tex_y = ((right_wall_height - 1) as f64 * v) as usize;
+
+                    let left_wall_color = left_wall_pixels[left_tex_y * left_wall_width + left_tex_x];
+                    let right_wall_color =
+                        right_wall_pixels[right_tex_y * right_wall_width + right_tex_x];
+
+                    let wall_fog = fog_factor(current_dist, max_ray_distance) as f32;
+
+                    let mut lc = Color::from_rgba(
+                        left_wall_color[0],
+                        left_wall_color[1],
+                        left_wall_color[2],
+                        left_wall_color[3],
                     )
-                };
+                        .to_vec()
+                        * wall_fog;
 
-                // Left wall tex coords
-                let left_tex_x = ((left_wall_width - 1) as f64 * u) as usize;
-                let left_tex_y = ((left_wall_height - 1) as f64 * v) as usize;
+                    let mut rc = Color::from_rgba(
+                        right_wall_color[0],
+                        right_wall_color[1],
+                        right_wall_color[2],
+                        right_wall_color[3],
+                    )
+                        .to_vec()
+                        * wall_fog;
 
-                // Right wall tex coords
-                let right_tex_x = ((right_wall_width - 1) as f64 * u) as usize;
-                let right_tex_y = ((right_wall_height - 1) as f64 * v) as usize;
+                    lc.w = 1.0;
+                    rc.w = 1.0;
 
-                let left_wall_color = left_wall_pixels[left_tex_y * left_wall_width + left_tex_x];
-                let right_wall_color =
-                    right_wall_pixels[right_tex_y * right_wall_width + right_tex_x];
-
-                let wall_fog = fog_factor(current_dist, max_ray_distance) as f32;
-
-                let mut lc = Color::from_rgba(
-                    left_wall_color[0],
-                    left_wall_color[1],
-                    left_wall_color[2],
-                    left_wall_color[3],
-                )
-                .to_vec()
-                    * wall_fog;
-
-                let mut rc = Color::from_rgba(
-                    right_wall_color[0],
-                    right_wall_color[1],
-                    right_wall_color[2],
-                    right_wall_color[3],
-                )
-                .to_vec()
-                    * wall_fog;
-
-                lc.w = 1.0;
-                rc.w = 1.0;
-
-                rd[y * rw + x] = Color::from_vec(lc).into();
-                rd[y * rw + (render_width as usize - 1 - x)] = Color::from_vec(rc).into();
+                    rd[y * rw + x] = Color::from_vec(lc).into();
+                    rd[y * rw + (render_width as usize - 1 - x)] = Color::from_vec(rc).into();
+                }
             }
         }
     }
@@ -291,6 +304,7 @@ impl FirstPersonViewer {
         floor_array: &Vec<Option<SpriteId>>,
         ceiling_array: &Vec<Option<SpriteId>>,
         image_manager: &ImageLoader,
+        hide_walls: bool
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -352,53 +366,55 @@ impl FirstPersonViewer {
             let dist_wall = perp_wall_dist;
             let dist_player = 0.0f64;
 
-            for y in draw_end + 1..h as usize {
-                let current_dist = h as f64 / (2.0 * (y as f64) - (h - 1) as f64); // This can be a table
-                let weight = ((current_dist - dist_player) / (dist_wall - dist_player));
-                let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
+            if !hide_walls {
+                for y in draw_end + 1..h as usize {
+                    let current_dist = h as f64 / (2.0 * (y as f64) - (h - 1) as f64); // This can be a table
+                    let weight = ((current_dist - dist_player) / (dist_wall - dist_player));
+                    let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 
-                let uv = current_floor_pos;
-                let map_x = uv.x as usize;
+                    let uv = current_floor_pos;
+                    let map_x = uv.x as usize;
 
-                let fog =
-                    fog_factor(current_floor_pos.distance(pos), max_ray_distance) as f32;
+                    let fog =
+                        fog_factor(current_floor_pos.distance(pos), max_ray_distance) as f32;
 
-                let floor_tile = floor_array[map_x];
-                let floor_color = match floor_tile {
-                    None => BLACK,
-                    Some(tex_id) => {
-                        let floor_tex = image_manager.get_image(tex_id);
-                        let u = 1.0 - uv.y;
-                        let v = 1.0 - (uv.x - map_x as f64);
+                    let floor_tile = floor_array[map_x];
+                    let floor_color = match floor_tile {
+                        None => BLACK,
+                        Some(tex_id) => {
+                            let floor_tex = image_manager.get_image(tex_id);
+                            let u = 1.0 - uv.y;
+                            let v = 1.0 - (uv.x - map_x as f64);
 
-                        let tex_x = (u * (floor_tex.width() - 1) as f64) as u32;
-                        let tex_y = (v * (floor_tex.height() - 1) as f64) as u32;
+                            let tex_x = (u * (floor_tex.width() - 1) as f64) as u32;
+                            let tex_y = (v * (floor_tex.height() - 1) as f64) as u32;
 
-                        let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
-                        cv.w = 1.0;
-                        Color::from_vec(cv)
-                    }
-                };
+                            let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
+                            cv.w = 1.0;
+                            Color::from_vec(cv)
+                        }
+                    };
 
-                let ceiling_tile = ceiling_array[map_x];
-                let ceiling_color = match ceiling_tile {
-                    None => BLACK,
-                    Some(tex_id) => {
-                        let ceiling_tex = image_manager.get_image(tex_id);
-                        let u = 1.0 - uv.y;
-                        let v = 1.0 - (uv.x - map_x as f64);
+                    let ceiling_tile = ceiling_array[map_x];
+                    let ceiling_color = match ceiling_tile {
+                        None => BLACK,
+                        Some(tex_id) => {
+                            let ceiling_tex = image_manager.get_image(tex_id);
+                            let u = 1.0 - uv.y;
+                            let v = 1.0 - (uv.x - map_x as f64);
 
-                        let tex_x = (u * (ceiling_tex.width() - 1) as f64) as u32;
-                        let tex_y = (v * (ceiling_tex.height() - 1) as f64) as u32;
+                            let tex_x = (u * (ceiling_tex.width() - 1) as f64) as u32;
+                            let tex_y = (v * (ceiling_tex.height() - 1) as f64) as u32;
 
-                        let mut cv = ceiling_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
-                        cv.w = 1.0;
-                        Color::from_vec(cv)
-                    }
-                };
+                            let mut cv = ceiling_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
+                            cv.w = 1.0;
+                            Color::from_vec(cv)
+                        }
+                    };
 
-                rd[y * render_width as usize + x] = floor_color.into();
-                rd[(render_height as usize - 1 - y) * render_width as usize + x] = ceiling_color.into();
+                    rd[y * render_width as usize + x] = floor_color.into();
+                    rd[(render_height as usize - 1 - y) * render_width as usize + x] = ceiling_color.into();
+                }
             }
 
             let sprite_pixels = front_image.render_image.get_image_data();
@@ -407,15 +423,13 @@ impl FirstPersonViewer {
                 let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
                 tex_pos += step;
 
-                let cv = if hit_type != Empty {
+                if hit_type != Empty {
                     let cvp = sprite_pixels[tex_y * tex_width_u + tex_x];
-                    Color::from_rgba(cvp[0], cvp[1], cvp[2], 255).to_vec()
-                } else {
-                    BLACK.to_vec()
-                };
-
-                let pixel = &mut rd[y * render_width as usize + x];
-                *pixel = Color::from_vec(cv).into();
+                    if cvp[3] != 0 {
+                        let pixel = &mut rd[y * render_width as usize + x];
+                        *pixel = cvp;
+                    }
+                }
             }
         }
     }

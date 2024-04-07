@@ -10,6 +10,7 @@ use rand::Rng;
 
 use crate::combat::Collision;
 use crate::fpv::{FirstPersonViewer, RoomTextureBindings, WallTextureBindings};
+use crate::GameState::FirstPersonHorizonal;
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
 use crate::level::{
@@ -40,6 +41,7 @@ mod sprites;
 const RENDER_WIDTH: u16 = 640;
 const RENDER_HEIGHT: u16 = 480;
 
+#[derive(PartialEq)]
 enum GameState {
     Start,
     Debug,
@@ -646,17 +648,38 @@ async fn main() {
 
                 player_state.player_look_horizonal();
                 let view_dir = calculate_view_dir(player_state.horizontal_look_rotation, 1.0);
+
+                // Draw floors, ceiling, and walls
+                first_person_view_horizontal.reset_image_buffer([0,0,0,255]);
                 first_person_view_horizontal.draw_view_horizontal(
                     max_ray_distance,
                     &h_world,
                     h_pos,
                     view_dir,
-                    0.5,
+                    plane_scale,
                     &first_person_view,
                     &h_world_floor,
                     &h_world_ceiling,
                     &sprite_images,
+                    false
                 );
+
+                // draw vertical scene render
+                h_world.grid.set_cell_at_grid_coords_int(IVec2::new(17,0), WallGridCell::Wall);
+                h_world.grid.set_cell_at_grid_coords_int(IVec2::new(15,0), WallGridCell::Wall);
+                first_person_view_horizontal.draw_view_horizontal(
+                    max_ray_distance,
+                    &h_world,
+                    h_pos,
+                    view_dir,
+                    plane_scale*2.0,
+                    &first_person_view,
+                    &h_world_floor,
+                    &h_world_ceiling,
+                    &sprite_images,
+                    true
+                );
+
                 first_person_view_horizontal.render(screen_size);
 
                 // Draw FPS meter
@@ -957,6 +980,12 @@ async fn main() {
                         pin: true,
                     },
                 };
+                let (hide_floors_and_ceiling, hide_walls, plane_scale) = if game_state == FirstPersonHorizonal {
+                    first_person_view.reset_image_buffer([0,0,0,0]);
+                    (true, true, plane_scale*2.0)
+                } else {
+                    (false, false, plane_scale)
+                };
                 first_person_view.draw_view(
                     max_ray_distance,
                     &world,
@@ -966,6 +995,8 @@ async fn main() {
                     &texture_bindings,
                     &wall_bindings,
                     &sprite_images,
+                    hide_floors_and_ceiling,
+                    hide_walls
                 );
                 sprite_manager.draw_sprites(
                     max_ray_distance,
