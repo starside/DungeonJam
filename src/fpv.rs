@@ -289,6 +289,7 @@ impl FirstPersonViewer {
         plane_scale: f64,
         front_image: &Self,
         floor_array: &Vec<Option<SpriteId>>,
+        ceiling_array: &Vec<Option<SpriteId>>,
         image_manager: &ImageLoader,
     ) {
         let plane = plane_scale * dir.perp();
@@ -359,8 +360,11 @@ impl FirstPersonViewer {
                 let uv = current_floor_pos;
                 let map_x = uv.x as usize;
 
+                let fog =
+                    fog_factor(current_floor_pos.distance(pos), max_ray_distance) as f32;
+
                 let floor_tile = floor_array[map_x];
-                let c = match floor_tile {
+                let floor_color = match floor_tile {
                     None => BLACK,
                     Some(tex_id) => {
                         let floor_tex = image_manager.get_image(tex_id);
@@ -370,17 +374,31 @@ impl FirstPersonViewer {
                         let tex_x = (u * (floor_tex.width() - 1) as f64) as u32;
                         let tex_y = (v * (floor_tex.height() - 1) as f64) as u32;
 
-                        let fog =
-                            fog_factor(current_floor_pos.distance(pos), max_ray_distance) as f32;
-
                         let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
                         cv.w = 1.0;
                         Color::from_vec(cv)
                     }
                 };
 
-                rd[y * render_width as usize + x] = c.into();
-                rd[(render_height as usize - 1 - y) * render_width as usize + x] = c.into();
+                let ceiling_tile = ceiling_array[map_x];
+                let ceiling_color = match ceiling_tile {
+                    None => BLACK,
+                    Some(tex_id) => {
+                        let ceiling_tex = image_manager.get_image(tex_id);
+                        let u = 1.0 - uv.y;
+                        let v = 1.0 - (uv.x - map_x as f64);
+
+                        let tex_x = (u * (ceiling_tex.width() - 1) as f64) as u32;
+                        let tex_y = (v * (ceiling_tex.height() - 1) as f64) as u32;
+
+                        let mut cv = ceiling_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
+                        cv.w = 1.0;
+                        Color::from_vec(cv)
+                    }
+                };
+
+                rd[y * render_width as usize + x] = floor_color.into();
+                rd[(render_height as usize - 1 - y) * render_width as usize + x] = ceiling_color.into();
             }
 
             let sprite_pixels = front_image.render_image.get_image_data();
