@@ -85,7 +85,8 @@ impl FirstPersonViewer {
         wall_texture_bindings: &WallTextureBindings,
         sprite_manager: &ImageLoader,
         hide_floor_ceiling: bool,
-        hide_walls: bool
+        hide_walls: bool,
+        line_width_scale: f64
     ) {
         let world_size = ucoords_to_dvec2(world.grid.get_size());
         let plane = plane_scale * dir.perp();
@@ -139,7 +140,7 @@ impl FirstPersonViewer {
             let (perp_wall_dist, hit_type, hit_side, map_coord) =
                 cast_ray(&world.grid, &pos, &ray_dir, max_ray_distance);
             let w = render_width as i32;
-            let line_width = (w as f64 / perp_wall_dist) as i32;
+            let line_width = (line_width_scale * w as f64 / perp_wall_dist) as i32;
             let draw_start = 0.max((-line_width / 2) + (w / 2)) as usize;
             let draw_end = w.min(line_width / 2 + w / 2) as usize;
             let rw = render_width as usize;
@@ -304,7 +305,8 @@ impl FirstPersonViewer {
         floor_array: &Vec<Option<SpriteId>>,
         ceiling_array: &Vec<Option<SpriteId>>,
         image_manager: &ImageLoader,
-        hide_walls: bool
+        hide_walls: bool,
+        lhs: f64
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -320,7 +322,7 @@ impl FirstPersonViewer {
             let (perp_wall_dist, hit_type, hit_side, map_coord) =
                 cast_ray(&world.grid, &pos, &ray_dir, max_ray_distance);
             let h = render_height as i32;
-            let line_height = (h as f64 / perp_wall_dist) as i32;
+            let line_height = (lhs * h as f64 / perp_wall_dist) as i32;
             let draw_start = 0.max((-line_height / 2) + (h / 2)) as usize;
             let draw_end = h.min(line_height / 2 + h / 2) as usize;
             let rh = render_height as usize;
@@ -368,7 +370,10 @@ impl FirstPersonViewer {
 
             if !hide_walls {
                 for y in draw_end + 1..h as usize {
-                    let current_dist = h as f64 / (2.0 * (y as f64) - (h - 1) as f64); // This can be a table
+                    if y == (h-1) as usize && x == 320 {
+                        println!("x {}, y {}, dist_wall {}, pos {}, ray_dir {}", x, y, dist_wall, pos, ray_dir.normalize());
+                    }
+                    let current_dist = lhs * h as f64 / (2.0 * (y as f64) - (h - 1) as f64); // This can be a table
                     let weight = ((current_dist - dist_player) / (dist_wall - dist_player));
                     let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 

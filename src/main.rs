@@ -488,7 +488,7 @@ async fn main() {
     }
 
     // Camera plane scaling factor
-    let plane_scale = -0.5;
+    let plane_scale: f64 = -1.5;
 
     let mut debug_view = debug::DebugView::default();
 
@@ -656,12 +656,13 @@ async fn main() {
                     &h_world,
                     h_pos,
                     view_dir,
-                    plane_scale,
+                    0.5,
                     &first_person_view,
                     &h_world_floor,
                     &h_world_ceiling,
                     &sprite_images,
-                    false
+                    false,
+                    0.333
                 );
 
                 // draw vertical scene render
@@ -672,12 +673,13 @@ async fn main() {
                     &h_world,
                     h_pos,
                     view_dir,
-                    plane_scale*2.0,
+                    0.5, // If this is less than 1, we need to scale the line width of the output render by the same ampunt
                     &first_person_view,
                     &h_world_floor,
                     &h_world_ceiling,
                     &sprite_images,
-                    true
+                    true,
+                    0.5
                 );
 
                 first_person_view_horizontal.render(screen_size);
@@ -980,11 +982,11 @@ async fn main() {
                         pin: true,
                     },
                 };
-                let (hide_floors_and_ceiling, hide_walls, plane_scale) = if game_state == FirstPersonHorizonal {
+                let (hide_floors_and_ceiling, hide_walls, plane_scale, line_width_scale) = if game_state == FirstPersonHorizonal {
                     first_person_view.reset_image_buffer([0,0,0,0]);
-                    (true, true, plane_scale*2.0)
+                    (true, true, plane_scale, 0.5)
                 } else {
-                    (false, false, plane_scale)
+                    (false, false, plane_scale, 1.0)
                 };
                 first_person_view.draw_view(
                     max_ray_distance,
@@ -996,7 +998,8 @@ async fn main() {
                     &wall_bindings,
                     &sprite_images,
                     hide_floors_and_ceiling,
-                    hide_walls
+                    hide_walls,
+                    line_width_scale
                 );
                 sprite_manager.draw_sprites(
                     max_ray_distance,
