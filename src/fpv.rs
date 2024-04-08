@@ -170,7 +170,8 @@ impl FirstPersonViewer {
                 Wall => {
                     match hit_side {
                         Horizontal => {
-                            if hide_floor_ceiling {
+                            let posi = pos.y as i32;
+                            if hide_floor_ceiling && (map_coord.y == posi + 1 || map_coord.y == posi - 1) {
                                 None
                             } else {
                                 if ray_dir.y > 0.0 {
@@ -233,7 +234,7 @@ impl FirstPersonViewer {
             // Draw walls
             if !hide_walls {
                 for x in 0..draw_start {
-                    let current_dist = w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
+                    let current_dist = line_width_scale * w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
                     let weight = (current_dist - dist_player) / (dist_wall - dist_player);
 
                     let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;

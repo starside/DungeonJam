@@ -617,7 +617,7 @@ async fn main() {
                 // Populate floor array
                 let current_pos = player_pos.get_pos();
                 for i in 0..h_world_size {
-                    let x = current_pos.x - (h_world_size / 2) + i;
+                    let x = current_pos.x + player_facing as i32 * ((h_world_size / 2) + i);
                     let floor_cell = world
                         .grid
                         .get_cell_at_grid_coords_int(IVec2::from((x, current_pos.y + 1)));
