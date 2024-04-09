@@ -1,6 +1,7 @@
 use crate::grid2d::WallGridCell::{Empty, Wall};
 use crate::image::ImageLoader;
 use macroquad::color::{Color, BLACK, BLUE, DARKGREEN, GREEN, RED, SKYBLUE, WHITE};
+use macroquad::input::KeyCode::P;
 use macroquad::math::{DVec2, Vec2};
 use macroquad::miniquad::FilterMode;
 use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
@@ -285,9 +286,6 @@ impl FirstPersonViewer {
                         .to_vec()
                         * wall_fog;
 
-                    lc.w = 1.0;
-                    rc.w = 1.0;
-
                     rd[y * rw + x] = Color::from_vec(lc).into();
                     rd[y * rw + (render_width as usize - 1 - x)] = Color::from_vec(rc).into();
                 }
@@ -302,12 +300,13 @@ impl FirstPersonViewer {
         pos: DVec2,
         dir: DVec2,
         plane_scale: f64,
-        front_image: &Self,
+        front_image: Option<&Self>,
         floor_array: &Vec<Option<SpriteId>>,
         ceiling_array: &Vec<Option<SpriteId>>,
         image_manager: &ImageLoader,
         hide_floor_ceiling: bool,
-        lhs: f64
+        lhs: f64,
+        wall_texture_bindings: &WallTextureBindings
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -336,30 +335,6 @@ impl FirstPersonViewer {
                 wall_hit_coord.x - wall_hit_coord.x.floor()
             };
 
-            // tex size
-            let sid = 0;
-
-            let tex_width_u = front_image.render_image.width as usize;
-            let tex_height_u = front_image.render_image.height as usize;
-            let tex_width = front_image.render_image.width as f64;
-            let tex_height = front_image.render_image.height as f64;
-
-            // Calculate textX
-            let mut tex_x = (wall_x * tex_width) as usize;
-            if hit_side == Vertical && dir.x < 0.0 {
-                tex_x = tex_width as usize - tex_x - 1;
-            } // The ifs may need to change
-            if hit_side == Horizontal && dir.y > 0.0 {
-                tex_x = tex_width as usize - tex_x - 1;
-            }
-            //println!("{}", dir.x/dir.x.abs());
-
-            // How much to step
-            let step = (tex_height / (line_height as f64));
-
-            // starting texture pos
-            let mut tex_pos = (draw_start as i32 - h / 2 + line_height / 2) as f64 * step;
-
             // Store z buffer
             match hit_type {
                 WallGridCell::Empty => self.z_buffer[x] = f64::INFINITY,
@@ -369,6 +344,88 @@ impl FirstPersonViewer {
             let dist_wall = perp_wall_dist;
             let dist_player = 0.0f64;
 
+            // Wall is previously rendered frame
+            if let Some(wall_view) = front_image {
+                let (tex_pixels, tex_width_u, tex_height_u, tex_x, mut tex_pos, step) =
+                    {
+                        let image = &wall_view.render_image;
+                        let tex_width_u = image.width as usize;
+                        let tex_height_u = image.height as usize;
+                        let tex_width = image.width as f64;
+                        let tex_height = image.height as f64;
+
+                        // Calculate textX
+                        let mut tex_x = (wall_x * tex_width) as usize;
+
+                        //let mut tex_x = (wall_x * tex_width) as usize;
+                        if hit_side == Vertical && dir.x < 0.0 {
+                            tex_x = tex_width as usize - tex_x - 1;
+                        } // The ifs may need to change
+                        if hit_side == Horizontal && dir.y > 0.0 {
+                            tex_x = tex_width as usize - tex_x - 1;
+                        }
+
+                        // How much to step
+                        let step = (tex_height / (line_height as f64));
+
+                        // starting texture pos
+                        let tex_pos = (draw_start as i32 - h / 2 + line_height / 2) as f64 * step;
+                        let sprite_pixels = image.get_image_data();
+                        (sprite_pixels, tex_width_u, tex_height_u, tex_x, tex_pos, step)
+                    };
+
+                for y in draw_start..draw_end {
+                    let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
+                    tex_pos += step;
+
+                    if hit_type != Empty {
+                        let cvp = tex_pixels[tex_y * tex_width_u + tex_x];
+                        if cvp[3] != 0 {
+                            let pixel = &mut rd[y * render_width as usize + x];
+                            *pixel = cvp;
+                        }
+                    }
+                }
+            } else {
+                let image = image_manager.get_image(wall_texture_bindings.left.sprite_id);
+                let tex_width_u = image.width as usize;
+                let tex_height_u = image.height as usize;
+                let tex_width = image.width as f64;
+                let tex_height = image.height as f64;
+
+                let wall_hit = perp_wall_dist * ray_dir;
+
+                // Calculate textX
+                let mut tex_x = ((perp_wall_dist / max_ray_distance) * tex_width) as usize;
+                //let mut tex_x = (wall_x * tex_width) as usize;
+                if hit_side == Vertical && dir.x < 0.0 {
+                    tex_x = tex_width as usize - tex_x - 1;
+                } // The ifs may need to change
+                if hit_side == Horizontal && dir.y > 0.0 {
+                    tex_x = tex_width as usize - tex_x - 1;
+                }
+
+                // How much to step
+                let step = (tex_height / (line_height as f64));
+
+                // starting texture pos
+                let mut tex_pos = (draw_start as i32 - h / 2 + line_height / 2) as f64 * step;
+                let tex_pixels = image.get_image_data();
+
+
+                for y in 0..render_height as usize {
+                    let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
+                    tex_pos += step;
+
+                    {
+                        let cvp = tex_pixels[tex_y * tex_width_u + tex_x];
+                        let pixel = &mut rd[y * render_width as usize + x];
+                        *pixel = cvp.into();
+                    }
+                }
+            }
+
+            // Draw floor and ceiling
             if !hide_floor_ceiling {
                 for y in draw_end + 1..h as usize {
                     let current_dist = lhs * h as f64 / (2.0 * y as f64 - h as f64 + 2.0); // This can be a table
@@ -382,8 +439,8 @@ impl FirstPersonViewer {
                         fog_factor(current_floor_pos.distance(pos), max_ray_distance) as f32;
 
                     let floor_tile = floor_array[map_x];
-                    let floor_color = match floor_tile {
-                        None => BLACK,
+                    let floor_color:Option<Color> = match floor_tile {
+                        None => None,
                         Some(tex_id) => {
                             let floor_tex = image_manager.get_image(tex_id);
                             let u = 1.0 - uv.y;
@@ -394,13 +451,13 @@ impl FirstPersonViewer {
 
                             let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
                             cv.w = 1.0;
-                            Color::from_vec(cv)
+                            Some(Color::from_vec(cv))
                         }
                     };
 
                     let ceiling_tile = ceiling_array[map_x];
-                    let ceiling_color = match ceiling_tile {
-                        None => BLACK,
+                    let ceiling_color:Option<Color> = match ceiling_tile {
+                        None => None,
                         Some(tex_id) => {
                             let ceiling_tex = image_manager.get_image(tex_id);
                             let u = 1.0 - uv.y;
@@ -411,26 +468,15 @@ impl FirstPersonViewer {
 
                             let mut cv = ceiling_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
                             cv.w = 1.0;
-                            Color::from_vec(cv)
+                            Some(Color::from_vec(cv))
                         }
                     };
 
-                    rd[y * render_width as usize + x] = floor_color.into();
-                    rd[(render_height as usize - 1 - y) * render_width as usize + x] = ceiling_color.into();
-                }
-            }
-
-            let sprite_pixels = front_image.render_image.get_image_data();
-
-            for y in draw_start..draw_end {
-                let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
-                tex_pos += step;
-
-                if hit_type != Empty {
-                    let cvp = sprite_pixels[tex_y * tex_width_u + tex_x];
-                    if cvp[3] != 0 {
-                        let pixel = &mut rd[y * render_width as usize + x];
-                        *pixel = cvp;
+                    if let Some(c) = floor_color {
+                        rd[y * render_width as usize + x] = c.into();
+                    }
+                    if let Some(c) = ceiling_color {
+                        rd[(render_height as usize - 1 - y) * render_width as usize + x] = c.into();
                     }
                 }
             }
