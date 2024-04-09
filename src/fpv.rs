@@ -306,7 +306,7 @@ impl FirstPersonViewer {
         floor_array: &Vec<Option<SpriteId>>,
         ceiling_array: &Vec<Option<SpriteId>>,
         image_manager: &ImageLoader,
-        hide_walls: bool,
+        hide_floor_ceiling: bool,
         lhs: f64
     ) {
         let plane = plane_scale * dir.perp();
@@ -369,11 +369,8 @@ impl FirstPersonViewer {
             let dist_wall = perp_wall_dist;
             let dist_player = 0.0f64;
 
-            if !hide_walls {
+            if !hide_floor_ceiling {
                 for y in draw_end + 1..h as usize {
-                    if y == (h-1) as usize && x == 320 {
-                        println!("x {}, y {}, dist_wall {}, pos {}, ray_dir {}", x, y, dist_wall, pos, ray_dir.normalize());
-                    }
                     let current_dist = lhs * h as f64 / (2.0 * y as f64 - h as f64 + 2.0); // This can be a table
                     let weight = ((current_dist - dist_player) / (dist_wall - dist_player));
                     let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
