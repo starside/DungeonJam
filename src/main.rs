@@ -488,7 +488,8 @@ async fn main() {
     }
 
     // Camera plane scaling factor
-    let plane_scale: f64 = -1.5;
+    let plane_scale: f64 = -1.15;
+    let horizontal_line_scale = 0.5;
 
     let mut debug_view = debug::DebugView::default();
 
@@ -656,13 +657,13 @@ async fn main() {
                     &h_world,
                     h_pos,
                     view_dir,
-                    0.5,
+                    0.5/horizontal_line_scale,
                     &first_person_view,
                     &h_world_floor,
                     &h_world_ceiling,
                     &sprite_images,
                     false,
-                    0.333
+                    (0.5)/plane_scale.abs()
                 );
 
                 // draw vertical scene render
@@ -673,7 +674,7 @@ async fn main() {
                     &h_world,
                     h_pos,
                     view_dir,
-                    0.5, // If this is less than 1, we need to scale the line width of the output render by the same ampunt
+                    0.5/horizontal_line_scale, // If this is less than 1, we need to scale the line width of the output render by the same ampunt
                     &first_person_view,
                     &h_world_floor,
                     &h_world_ceiling,
@@ -986,7 +987,7 @@ async fn main() {
                     first_person_view.reset_image_buffer([0,0,0,0]);
                     (true, true, plane_scale, 0.5)
                 } else {
-                    (false, false, plane_scale, 1.0)
+                    (false, false, plane_scale, horizontal_line_scale)
                 };
                 first_person_view.draw_view(
                     max_ray_distance,

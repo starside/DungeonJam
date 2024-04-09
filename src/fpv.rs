@@ -374,7 +374,7 @@ impl FirstPersonViewer {
                     if y == (h-1) as usize && x == 320 {
                         println!("x {}, y {}, dist_wall {}, pos {}, ray_dir {}", x, y, dist_wall, pos, ray_dir.normalize());
                     }
-                    let current_dist = lhs * h as f64 / (2.0 * (y as f64) - (h - 1) as f64); // This can be a table
+                    let current_dist = lhs * h as f64 / (2.0 * y as f64 - h as f64 + 2.0); // This can be a table
                     let weight = ((current_dist - dist_player) / (dist_wall - dist_player));
                     let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
 
