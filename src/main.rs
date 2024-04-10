@@ -617,13 +617,13 @@ async fn main() {
 
                 let wall_bindings = WallTextureBindings {
                     left: WallTextureBinding {
-                        sprite_id: 0,
-                        repeat_speed: 8.0,
+                        sprite_id: 4,
+                        repeat_speed: 1.0,
                         pin: true,
                     },
                     right: WallTextureBinding {
-                        sprite_id: 0,
-                        repeat_speed: 8.0,
+                        sprite_id: 4,
+                        repeat_speed: 1.0,
                         pin: true,
                     },
                 };
@@ -681,7 +681,7 @@ async fn main() {
                 );
 
                 // draw vertical scene render
-                /*h_world.grid.set_cell_at_grid_coords_int(IVec2::new(17,0), WallGridCell::Wall);
+                h_world.grid.set_cell_at_grid_coords_int(IVec2::new(17,0), WallGridCell::Wall);
                 h_world.grid.set_cell_at_grid_coords_int(IVec2::new(15,0), WallGridCell::Wall);
                 first_person_view_horizontal.draw_view_horizontal(
                     max_ray_distance,
@@ -689,13 +689,14 @@ async fn main() {
                     h_pos,
                     view_dir,
                     0.5/horizontal_line_scale, // If this is less than 1, we need to scale the line width of the output render by the same ampunt
-                    &first_person_view,
+                    Some(&first_person_view),
                     &h_world_floor,
                     &h_world_ceiling,
                     &sprite_images,
                     true,
-                    0.5
-                );*/
+                    0.5,
+                    &wall_bindings
+                );
 
                 first_person_view_horizontal.render(screen_size);
 
@@ -987,13 +988,13 @@ async fn main() {
                 };
                 let wall_bindings = WallTextureBindings {
                     left: WallTextureBinding {
-                        sprite_id: 0,
-                        repeat_speed: 16.0,
+                        sprite_id: 4,
+                        repeat_speed: 1.0,
                         pin: true,
                     },
                     right: WallTextureBinding {
-                        sprite_id: 0,
-                        repeat_speed: 16.0,
+                        sprite_id: 4,
+                        repeat_speed: 1.0,
                         pin: true,
                     },
                 };

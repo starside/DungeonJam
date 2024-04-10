@@ -387,6 +387,12 @@ impl FirstPersonViewer {
                     }
                 }
             } else {
+                let line_height_2 = (16.0 * line_height as f64) as i32;
+                let n = 4.0;
+                let true_draw_start = h/2 - (line_height as f64 *(0.5 + n)) as i32;
+                let draw_start_2 = 0.max(true_draw_start);
+                let draw_end = h.min(line_height_2 / 2 + h / 2) as usize;
+
                 let image = image_manager.get_image(wall_texture_bindings.left.sprite_id);
                 let tex_width_u = image.width as usize;
                 let tex_height_u = image.height as usize;
@@ -406,21 +412,24 @@ impl FirstPersonViewer {
                 }
 
                 // How much to step
-                let step = (tex_height / (line_height as f64));
+                let step = (tex_height / (line_height_2 as f64));
 
                 // starting texture pos
-                let mut tex_pos = (draw_start as i32 - h / 2 + line_height / 2) as f64 * step;
+                let mut tex_pos = (draw_start_2 - true_draw_start) as f64 * step;
                 let tex_pixels = image.get_image_data();
 
 
-                for y in 0..render_height as usize {
+                for y in draw_start_2 as usize..draw_end {
                     let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
                     tex_pos += step;
 
-                    {
+                    if hit_side == Horizontal{
                         let cvp = tex_pixels[tex_y * tex_width_u + tex_x];
                         let pixel = &mut rd[y * render_width as usize + x];
                         *pixel = cvp.into();
+                    } else {
+                        let pixel = &mut rd[y * render_width as usize + x];
+                        *pixel = BLACK.into();
                     }
                 }
             }
