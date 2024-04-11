@@ -235,7 +235,7 @@ impl FirstPersonViewer {
             // Draw walls
             if !hide_walls {
                 for x in 0..draw_start {
-                    let current_dist = line_width_scale * w as f64 / (-2.0 * x as f64 + w as f64); // This can be a table
+                    let current_dist = line_width_scale * w as f64 / (-2.0 * x as f64 + w as f64 ); // This can be a table
                     let weight = (current_dist - dist_player) / (dist_wall - dist_player);
 
                     let current_floor_pos = weight * wall_hit_coord + (1.0 - weight) * pos;
@@ -250,7 +250,7 @@ impl FirstPersonViewer {
                         let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, wall_speed));
                         (
                             wrap_double_norm(distx / max_ray_distance),
-                            wrap_double_norm(disty / max_ray_distance),
+                            wrap_double_norm(0.5 * (disty + 1.5) / max_ray_distance), // move up 1.5 in world units
                         )
                     };
 
@@ -387,8 +387,12 @@ impl FirstPersonViewer {
                     }
                 }
             } else {
-                let line_height_2 = (16.0 * line_height as f64) as i32;
-                let n = 4.0;
+                let line_height_2 = (32.0 * line_height as f64) as i32;
+                let n = 1.0;
+                //println!("n = {}", n);
+                //h/2 = (lhs * h / max_ray_distance)*(0.5 + n)
+                //1/2 = (lhs / max_ray_distance)*(0.5 + n)
+                //(lhs / max_ray_distance) * 0.5 - 0.5 =  n
                 let true_draw_start = h/2 - (line_height as f64 *(0.5 + n)) as i32;
                 let draw_start_2 = 0.max(true_draw_start);
                 let draw_end = h.min(line_height_2 / 2 + h / 2) as usize;
