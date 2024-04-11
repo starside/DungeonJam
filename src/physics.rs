@@ -6,6 +6,14 @@ pub fn wrap_double_norm(val: f64) -> f64 {
     }
 }
 
+pub fn wrap_double_range(val: f64, range: f64) -> f64 {
+    if val < 0.0 {
+        range - (val % range).abs()
+    } else {
+        (val % range).abs()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

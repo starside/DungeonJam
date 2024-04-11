@@ -8,7 +8,7 @@ use macroquad::prelude::{draw_texture_ex, DrawTextureParams, Image, Texture2D};
 
 use crate::level::{apply_boundary_conditions_f64, ucoords_to_dvec2, Level};
 use crate::mob::MagicColor::Black;
-use crate::physics::wrap_double_norm;
+use crate::physics::{wrap_double_norm, wrap_double_range};
 use crate::raycaster::HitSide::{Horizontal, Vertical};
 use crate::raycaster::{cast_ray, HitSide};
 use crate::WallGridCell;
@@ -234,6 +234,7 @@ impl FirstPersonViewer {
 
             // Draw walls
             if !hide_walls {
+                let tex_start_offset = 0.0; // In world coordinates, how much to shift texture start in vertical
                 for x in 0..draw_start {
                     let current_dist = line_width_scale * w as f64 / (-2.0 * x as f64 + w as f64 ); // This can be a table
                     let weight = (current_dist - dist_player) / (dist_wall - dist_player);
@@ -250,7 +251,7 @@ impl FirstPersonViewer {
                         let disty = (current_floor_pos - pos).dot(DVec2::new(0.0, wall_speed));
                         (
                             wrap_double_norm(distx / max_ray_distance),
-                            wrap_double_norm(0.5 * (disty + 1.5) / max_ray_distance), // move up 1.5 in world units
+                            wrap_double_norm(0.5 * (disty + tex_start_offset) / max_ray_distance),
                         )
                     };
 
@@ -388,12 +389,12 @@ impl FirstPersonViewer {
                 }
             } else {
                 let line_height_2 = (32.0 * line_height as f64) as i32;
-                let n = 1.0;
+                let m = 0.5;
                 //println!("n = {}", n);
                 //h/2 = (lhs * h / max_ray_distance)*(0.5 + n)
                 //1/2 = (lhs / max_ray_distance)*(0.5 + n)
-                //(lhs / max_ray_distance) * 0.5 - 0.5 =  n
-                let true_draw_start = h/2 - (line_height as f64 *(0.5 + n)) as i32;
+                //(max_ray_distance / lhs) * 0.5 - 0.5 =  n
+                let true_draw_start = h/2 - (line_height as f64 * m) as i32;
                 let draw_start_2 = 0.max(true_draw_start);
                 let draw_end = h.min(line_height_2 / 2 + h / 2) as usize;
 
@@ -419,12 +420,13 @@ impl FirstPersonViewer {
                 let step = (tex_height / (line_height_2 as f64));
 
                 // starting texture pos
-                let mut tex_pos = (draw_start_2 - true_draw_start) as f64 * step;
+                let tex_offset = -1.0 * (h as f64 / 2.0 - true_draw_start as f64) * step;
+                let mut tex_pos = tex_offset + (draw_start_2 - true_draw_start) as f64 * step;
                 let tex_pixels = image.get_image_data();
 
 
                 for y in draw_start_2 as usize..draw_end {
-                    let tex_y = (tex_pos as usize).clamp(0, tex_height_u - 1);
+                    let tex_y = wrap_double_range(tex_pos, tex_height - 1.0001) as usize;
                     tex_pos += step;
 
                     if hit_side == Horizontal{
