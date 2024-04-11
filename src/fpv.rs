@@ -388,34 +388,20 @@ impl FirstPersonViewer {
                         }
                     }
                 }
-            } else {
-                let line_height_2 = (32.0 * line_height as f64) as i32;
+            } else { // Draw pinned wall image
+                let line_height_2 = (2.0 * max_ray_distance * line_height as f64) as i32;
                 let m = player_y.min(max_ray_distance);
-                //println!("n = {}", n);
-                //h/2 = (lhs * h / max_ray_distance)*(0.5 + n)
-                //1/2 = (lhs / max_ray_distance)*(0.5 + n)
-                //(max_ray_distance / lhs) * 0.5 - 0.5 =  n
                 let true_draw_start = h/2 - (line_height as f64 * m) as i32;
                 let draw_start_2 = 0.max(true_draw_start);
                 let draw_end = h.min(line_height_2 / 2 + h / 2) as usize;
 
                 let image = image_manager.get_image(wall_texture_bindings.left.sprite_id);
                 let tex_width_u = image.width as usize;
-                let tex_height_u = image.height as usize;
                 let tex_width = image.width as f64;
                 let tex_height = image.height as f64;
 
-                let wall_hit = perp_wall_dist * ray_dir;
-
                 // Calculate textX
-                let mut tex_x = ((perp_wall_dist / max_ray_distance) * tex_width) as usize;
-                //let mut tex_x = (wall_x * tex_width) as usize;
-                if hit_side == Vertical && dir.x < 0.0 {
-                    tex_x = tex_width as usize - tex_x - 1;
-                } // The ifs may need to change
-                if hit_side == Horizontal && dir.y > 0.0 {
-                    tex_x = tex_width as usize - tex_x - 1;
-                }
+                let tex_x = ((perp_wall_dist / max_ray_distance) * tex_width) as usize;
 
                 // How much to step
                 let step = (tex_height / (line_height_2 as f64));
@@ -424,7 +410,6 @@ impl FirstPersonViewer {
                 let tex_offset = -1.0 * (h as f64 / 2.0 - true_draw_start as f64) * step;
                 let mut tex_pos = tex_offset + (draw_start_2 - true_draw_start) as f64 * step;
                 let tex_pixels = image.get_image_data();
-
 
                 for y in draw_start_2 as usize..draw_end {
                     let tex_y = wrap_double_range(tex_pos, tex_height - 1.0001) as usize;
