@@ -630,6 +630,7 @@ async fn main() {
 
                 // Populate floor array
                 let current_pos = player_pos.get_pos();
+                let current_pos_world = world_space_centered_coord(<(i32, i32)>::from(current_pos), 0.0, 0.0);
                 for i in 0..h_world_size {
                     let x = current_pos.x + player_facing as i32 * ((h_world_size / 2) + i);
                     let floor_cell = world
@@ -677,7 +678,8 @@ async fn main() {
                     &sprite_images,
                     false,
                     (0.5)/plane_scale.abs(),
-                    &wall_bindings
+                    &wall_bindings,
+                    current_pos_world.y
                 );
 
                 // draw vertical scene render
@@ -695,8 +697,10 @@ async fn main() {
                     &sprite_images,
                     true,
                     0.5,
-                    &wall_bindings
+                    &wall_bindings,
+                    current_pos_world.y
                 );
+                println!("cp {}", current_pos_world);
 
                 first_person_view_horizontal.render(screen_size);
 

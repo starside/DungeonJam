@@ -307,7 +307,8 @@ impl FirstPersonViewer {
         image_manager: &ImageLoader,
         hide_floor_ceiling: bool,
         lhs: f64,
-        wall_texture_bindings: &WallTextureBindings
+        wall_texture_bindings: &WallTextureBindings,
+        player_y: f64
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -389,7 +390,7 @@ impl FirstPersonViewer {
                 }
             } else {
                 let line_height_2 = (32.0 * line_height as f64) as i32;
-                let m = 0.5;
+                let m = player_y.min(max_ray_distance);
                 //println!("n = {}", n);
                 //h/2 = (lhs * h / max_ray_distance)*(0.5 + n)
                 //1/2 = (lhs / max_ray_distance)*(0.5 + n)
