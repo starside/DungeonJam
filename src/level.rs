@@ -140,10 +140,12 @@ pub struct PlayerMap {
 // Applies boundary conditions.  Clamp vertical, wrap horizontal
 pub(crate) fn apply_boundary_conditions_i32(pos: IVec2, world_size: (usize, usize)) -> IVec2 {
     let ws = IVec2::from((world_size.0 as i32, world_size.1 as i32));
-    let nx = if pos.x < 0 {
-        ws.x - (pos.x.abs() % ws.x)
+
+    let xs = pos.x % ws.x;
+    let nx = if xs < 0 {
+        ws.x - (xs.abs() % ws.x)
     } else {
-        pos.x % ws.x
+        xs
     };
     let ny = if pos.y < 0 {
         0

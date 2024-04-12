@@ -45,12 +45,17 @@ impl<T: Serialize + DeserializeOwned + Default> Grid2D<T>{
         if pos.y < 0 || pos.y >= self.height as i32 {
             return None;
         }
-        let x = if pos.x < 0 {
-            self.width - ((-1*pos.x) as usize % self.width)
+
+        let xs = pos.x % self.width as i32;
+        let x = if xs < 0 {
+            self.width - (xs.abs() as usize % self.width)
         } else {
-            pos.x as usize % self.width
+            xs as usize
         };
+
         let y = pos.y as usize;
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
         self.cells.get(y * self.width + x)
     }
 
@@ -64,6 +69,8 @@ impl<T: Serialize + DeserializeOwned + Default> Grid2D<T>{
 
         let x= pos.x as usize;
         let y = pos.y as usize;
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
         self.cells[y * self.width + x] = val;
         Some(())
     }

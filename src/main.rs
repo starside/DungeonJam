@@ -700,7 +700,6 @@ async fn main() {
                     &wall_bindings,
                     current_pos_world.y
                 );
-                println!("cp {}", current_pos_world);
 
                 first_person_view_horizontal.render(screen_size);
 
