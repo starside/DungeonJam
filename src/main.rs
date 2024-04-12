@@ -431,6 +431,65 @@ fn render_sprite_full_screen(
     sprite_manager.clear_sprites();
 }
 
+fn draw_first_person_frame(
+    player_state: &PlayerState,
+    player_facing: f64,
+    max_ray_distance: f64,
+    world: &Level,
+    pos: DVec2,
+    plane_scale: f64,
+    sprite_images: &ImageLoader,
+    hide_floors_and_ceiling: bool,
+    hide_walls: bool,
+    line_width_scale: f64,
+    first_person_view: &mut FirstPersonViewer,
+    sprite_manager: &mut Sprites) {
+
+    let world_size = world.grid.get_size();
+
+    // Draw frame
+    let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
+    let texture_bindings = RoomTextureBindings {
+        floor: 7,
+        wall: 9,
+        ceiling: 8,
+    };
+    let wall_bindings = WallTextureBindings {
+        left: WallTextureBinding {
+            sprite_id: 4,
+            repeat_speed: 1.0,
+            pin: true,
+        },
+        right: WallTextureBinding {
+            sprite_id: 4,
+            repeat_speed: 1.0,
+            pin: true,
+        },
+    };
+    first_person_view.draw_view(
+        max_ray_distance,
+        &world,
+        pos,
+        view_dir,
+        plane_scale,
+        &texture_bindings,
+        &wall_bindings,
+        &sprite_images,
+        hide_floors_and_ceiling,
+        hide_walls,
+        line_width_scale
+    );
+    sprite_manager.draw_sprites(
+        max_ray_distance,
+        &sprite_images,
+        first_person_view,
+        pos,
+        view_dir,
+        player_facing * plane_scale,
+        world_size.0 as f64,
+    );
+}
+
 #[macroquad::main("BasicShapes")]
 async fn main() {
     // Load images
@@ -983,52 +1042,24 @@ async fn main() {
                 collisions.clear();
 
                 // Draw frame
-                let view_dir = calculate_view_dir(player_state.look_rotation, player_facing);
-                let texture_bindings = RoomTextureBindings {
-                    floor: 7,
-                    wall: 9,
-                    ceiling: 8,
-                };
-                let wall_bindings = WallTextureBindings {
-                    left: WallTextureBinding {
-                        sprite_id: 4,
-                        repeat_speed: 1.0,
-                        pin: true,
-                    },
-                    right: WallTextureBinding {
-                        sprite_id: 4,
-                        repeat_speed: 1.0,
-                        pin: true,
-                    },
-                };
                 let (hide_floors_and_ceiling, hide_walls, plane_scale, line_width_scale) = if game_state == FirstPersonHorizonal {
                     first_person_view.reset_image_buffer([0,0,0,0]);
                     (true, true, plane_scale, 0.5)
                 } else {
                     (false, false, plane_scale, horizontal_line_scale)
                 };
-                first_person_view.draw_view(
+                draw_first_person_frame(
+                    &player_state,
+                    player_facing,
                     max_ray_distance,
                     &world,
                     pos,
-                    view_dir,
                     plane_scale,
-                    &texture_bindings,
-                    &wall_bindings,
                     &sprite_images,
                     hide_floors_and_ceiling,
                     hide_walls,
-                    line_width_scale
-                );
-                sprite_manager.draw_sprites(
-                    max_ray_distance,
-                    &sprite_images,
-                    &mut first_person_view,
-                    pos,
-                    view_dir,
-                    player_facing * plane_scale,
-                    world_width as f64,
-                );
+                    line_width_scale,
+                    &mut first_person_view, &mut sprite_manager);
 
                 first_person_view.render(screen_size);
 
