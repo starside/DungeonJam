@@ -9,6 +9,7 @@ use macroquad::color;
 use macroquad::math::f64;
 use macroquad::miniquad::window;
 use macroquad::prelude::*;
+use macroquad::telemetry::frame;
 use rand::Rng;
 
 use crate::combat::Collision;
@@ -25,7 +26,8 @@ use crate::player_movement::{
     PlayerPosition,
 };
 use crate::sprites::Sprites;
-use crate::PlayerMode::{Falling, Idle, Moving};
+use crate::GameState::FirstPersonHorizonal;
+use crate::PlayerMode::{Falling, Idle, Moving, Turning};
 
 mod combat;
 mod debug;
@@ -60,16 +62,22 @@ enum PlayerMode {
     Idle,
     Moving,
     Falling,
+    Turning(f64),
 }
 
 struct PlayerState {
     last_key_pressed: Option<KeyCode>,
     mode: PlayerMode,
     look_rotation: f64,
-    horizontal_look_rotation: f64,
     fire_cooldown: f64,
 
     new_player_pos: Option<(i32, i32)>,
+    lerp: f64,
+}
+
+struct HorizontalPlayerState {
+    turn_direction: f64,
+    look_rotation: f64,
     lerp: f64,
 }
 
@@ -77,6 +85,31 @@ fn calculate_view_dir(rotation_angle: f64, player_facing: f64) -> DVec2 {
     let rot2d = DVec2::from((rotation_angle.cos(), player_facing * rotation_angle.sin()));
     let dir = player_facing * DVec2::from((-1.0, 0.0));
     rot2d.rotate(dir)
+}
+
+impl HorizontalPlayerState {
+    fn player_look_horizonal(&mut self) {
+        let look_speed: f64 = 1.5; // Time in seconds to cover range
+        let look_range: f64 = 2.0 * 3.14;
+        let frame_time = get_frame_time() as f64;
+
+        if is_key_down(KeyCode::A) {
+            self.look_rotation += look_range / look_speed * frame_time;
+            // Need to use time to animate
+        } else if is_key_down(KeyCode::D) {
+            self.look_rotation -= look_range / look_speed * frame_time;
+        }
+    }
+
+    fn player_do_180(&mut self) -> bool {
+        let look_speed: f64 = 0.35; // Time in seconds to cover range
+        let frame_time = get_frame_time() as f64;
+
+        self.lerp += frame_time / look_speed;
+        self.lerp = self.lerp.clamp(0.0, 1.0);
+        self.look_rotation = self.turn_direction * PI * self.lerp;
+        self.lerp == 1.0
+    }
 }
 
 impl PlayerState {
@@ -93,19 +126,6 @@ impl PlayerState {
         } else if is_key_down(KeyCode::Down) {
             self.look_rotation -= look_range / look_speed * frame_time;
             self.look_rotation = self.look_rotation.max(look_down_max);
-        }
-    }
-
-    fn player_look_horizonal(&mut self) {
-        let look_speed: f64 = 1.5; // Time in seconds to cover range
-        let look_range: f64 = 2.0 * 3.14;
-        let frame_time = get_frame_time() as f64;
-
-        if is_key_down(KeyCode::A) {
-            self.horizontal_look_rotation += look_range / look_speed * frame_time;
-        // Need to use time to animate
-        } else if is_key_down(KeyCode::D) {
-            self.horizontal_look_rotation -= look_range / look_speed * frame_time;
         }
     }
     fn do_idle_state(
@@ -136,15 +156,15 @@ impl PlayerState {
             None => Idle,
             Some(x) => {
                 match &x {
-                    KeyCode::A | KeyCode::D => {
+                    KeyCode::A => {
                         //Turn around
-                        if *player_facing > 0.0 {
-                            *player_facing = -1.0;
-                        } else {
-                            *player_facing = 1.0;
-                        }
                         self.look_rotation = 0.0;
-                        Idle
+                        Turning(-1.0)
+                    }
+                    KeyCode::D => {
+                        //Turn around
+                        self.look_rotation = 0.0;
+                        Turning(1.0)
                     }
                     KeyCode::W => {
                         // Move forward
@@ -578,7 +598,11 @@ async fn main() {
         new_player_pos: None,
         lerp: 0.0,
         fire_cooldown: 0.0,
-        horizontal_look_rotation: 0.0,
+    };
+    let mut horizontal_player_state = HorizontalPlayerState {
+        turn_direction: 0.0,
+        look_rotation: 0.0,
+        lerp: 0.0,
     };
 
     // Array to store collisions
@@ -691,16 +715,17 @@ async fn main() {
 
                 // Calculate view
                 let base_angle: f64 = if player_facing < 0.0 { PI } else { 0.0 };
-                player_state.player_look_horizonal();
+                let done_turning = horizontal_player_state.player_do_180();
                 let view_dir =
-                    calculate_view_dir(base_angle + player_state.horizontal_look_rotation, 1.0);
+                    calculate_view_dir(base_angle + horizontal_player_state.look_rotation, 1.0);
                 let h_facing = view_dir.x.signum() as i32;
 
                 // Populate floor array
                 let current_pos = player_pos.get_pos();
-                let current_pos_world = world_space_centered_coord(<(i32, i32)>::from(current_pos), 0.0, 0.0);
-                for i in 0..h_world_size/2 {
-                    let x = current_pos.x + h_facing*i;
+                let current_pos_world =
+                    world_space_centered_coord(<(i32, i32)>::from(current_pos), 0.0, 0.0);
+                for i in 0..h_world_size / 2 {
+                    let x = current_pos.x + h_facing * i;
                     let floor_cell = world
                         .grid
                         .get_cell_at_grid_coords_int(IVec2::from((x, current_pos.y + 1)));
@@ -791,6 +816,12 @@ async fn main() {
                 // Draw FPS meter
                 let fps = get_fps();
                 draw_text(format!("{}", fps).as_str(), 20.0, 400.0, 30.0, DARKGRAY);
+
+                if done_turning {
+                    player_facing = -1.0 * player_facing;
+                    player_state.mode = Idle;
+                    game_state = GameState::FirstPerson;
+                }
             }
 
             GameState::FirstPerson => {
@@ -832,6 +863,13 @@ async fn main() {
                         &mut mob_grid,
                         &mut world,
                     ),
+                    Turning(direction) => {
+                        game_state = GameState::FirstPersonHorizonal;
+                        horizontal_player_state.turn_direction = direction;
+                        horizontal_player_state.lerp = 0.0;
+                        horizontal_player_state.look_rotation = 0.0;
+                        Turning(direction)
+                    }
                 };
 
                 match last_key_pressed {
@@ -1116,6 +1154,12 @@ async fn main() {
 
                 // Decrease weapon cooldown
                 player_state.fire_cooldown -= last_frame_time;
+
+                // Actions to set when transitioning to other game states
+                if game_state == FirstPersonHorizonal {
+                    horizontal_player_state.lerp = 0.0;
+                    horizontal_player_state.look_rotation = 0.0;
+                }
             }
 
             GameState::LevelEditor => {
