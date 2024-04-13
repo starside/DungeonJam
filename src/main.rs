@@ -1,6 +1,9 @@
 #![allow(warnings)]
 extern crate rand;
 
+use std::default::Default;
+use std::f64::consts::PI;
+
 use fpv::{SpriteId, WallTextureBinding};
 use macroquad::color;
 use macroquad::math::f64;
@@ -10,7 +13,6 @@ use rand::Rng;
 
 use crate::combat::Collision;
 use crate::fpv::{FirstPersonViewer, RoomTextureBindings, WallTextureBindings};
-use crate::GameState::FirstPersonHorizonal;
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
 use crate::level::{
@@ -95,18 +97,15 @@ impl PlayerState {
     }
 
     fn player_look_horizonal(&mut self) {
-        let look_up_max: f64 = 3.14;
-        let look_down_max: f64 = -3.14;
         let look_speed: f64 = 1.5; // Time in seconds to cover range
-        let look_range: f64 = look_up_max - look_down_max;
+        let look_range: f64 = 2.0 * 3.14;
         let frame_time = get_frame_time() as f64;
 
         if is_key_down(KeyCode::A) {
-            self.horizontal_look_rotation += look_range / look_speed * frame_time; // Need to use time to animate
-            self.horizontal_look_rotation = self.horizontal_look_rotation.min(look_up_max);
+            self.horizontal_look_rotation += look_range / look_speed * frame_time;
+        // Need to use time to animate
         } else if is_key_down(KeyCode::D) {
             self.horizontal_look_rotation -= look_range / look_speed * frame_time;
-            self.horizontal_look_rotation = self.horizontal_look_rotation.max(look_down_max);
         }
     }
     fn do_idle_state(
@@ -443,8 +442,8 @@ fn draw_first_person_frame(
     hide_walls: bool,
     line_width_scale: f64,
     first_person_view: &mut FirstPersonViewer,
-    sprite_manager: &mut Sprites) {
-
+    sprite_manager: &mut Sprites,
+) {
     let world_size = world.grid.get_size();
 
     // Draw frame
@@ -477,7 +476,7 @@ fn draw_first_person_frame(
         &sprite_images,
         hide_floors_and_ceiling,
         hide_walls,
-        line_width_scale
+        line_width_scale,
     );
     sprite_manager.draw_sprites(
         max_ray_distance,
@@ -672,7 +671,10 @@ async fn main() {
                     Vec::with_capacity(h_world_size as usize);
                 let mut h_world_ceiling: Vec<Option<SpriteId>> =
                     Vec::with_capacity(h_world_size as usize);
+                h_world_floor.resize_with(h_world_size as usize, Default::default);
+                h_world_ceiling.resize_with(h_world_size as usize, Default::default);
                 h_world.grid.zero();
+                let h_pos = world_space_centered_coord((max_ray_distance as i32, 0), 0.0, 0.0);
 
                 let wall_bindings = WallTextureBindings {
                     left: WallTextureBinding {
@@ -687,11 +689,18 @@ async fn main() {
                     },
                 };
 
+                // Calculate view
+                let base_angle: f64 = if player_facing < 0.0 { PI } else { 0.0 };
+                player_state.player_look_horizonal();
+                let view_dir =
+                    calculate_view_dir(base_angle + player_state.horizontal_look_rotation, 1.0);
+                let h_facing = view_dir.x.signum() as i32;
+
                 // Populate floor array
                 let current_pos = player_pos.get_pos();
                 let current_pos_world = world_space_centered_coord(<(i32, i32)>::from(current_pos), 0.0, 0.0);
-                for i in 0..h_world_size {
-                    let x = current_pos.x + player_facing as i32 * ((h_world_size / 2) + i);
+                for i in 0..h_world_size/2 {
+                    let x = current_pos.x + h_facing*i;
                     let floor_cell = world
                         .grid
                         .get_cell_at_grid_coords_int(IVec2::from((x, current_pos.y + 1)));
@@ -702,7 +711,7 @@ async fn main() {
                         },
                         None => None,
                     };
-                    h_world_floor.push(floor_cell);
+                    h_world_floor[(h_pos.x as i32 + (h_facing * i)) as usize] = floor_cell;
 
                     // Ceiling
                     let ceiling_cell = world
@@ -715,41 +724,58 @@ async fn main() {
                         },
                         None => None,
                     };
-                    h_world_ceiling.push(ceiling_cell);
+                    h_world_ceiling[(h_pos.x as i32 + (h_facing * i)) as usize] = ceiling_cell;
                 }
 
-                let h_pos = world_space_centered_coord((max_ray_distance as i32, 0), 0.0, 0.0);
-
-                player_state.player_look_horizonal();
-                let view_dir = calculate_view_dir(player_state.horizontal_look_rotation, 1.0);
-
                 // Draw floors, ceiling, and walls
-                first_person_view_horizontal.reset_image_buffer([0,0,0,255]);
+                first_person_view_horizontal.reset_image_buffer([0, 0, 0, 255]);
                 first_person_view_horizontal.draw_view_horizontal(
                     max_ray_distance,
                     &h_world,
                     h_pos,
                     view_dir,
-                    0.5/horizontal_line_scale,
+                    0.5 / horizontal_line_scale,
                     None,
                     &h_world_floor,
                     &h_world_ceiling,
                     &sprite_images,
                     false,
-                    (0.5)/plane_scale.abs(),
+                    (0.5) / plane_scale.abs(),
                     &wall_bindings,
-                    current_pos_world.y
+                    current_pos_world.y,
+                );
+
+                // Re-render old view
+                first_person_view.reset_image_buffer([0, 0, 0, 0]);
+                let vertical_look_dir = if view_dir.x < 0.0 { 1.0 } else { -1.0 };
+                draw_first_person_frame(
+                    &player_state,
+                    vertical_look_dir,
+                    max_ray_distance,
+                    &world,
+                    pos,
+                    plane_scale,
+                    &sprite_images,
+                    true,
+                    true,
+                    0.5,
+                    &mut first_person_view,
+                    &mut sprite_manager,
                 );
 
                 // draw vertical scene render
-                h_world.grid.set_cell_at_grid_coords_int(IVec2::new(17,0), WallGridCell::Wall);
-                h_world.grid.set_cell_at_grid_coords_int(IVec2::new(15,0), WallGridCell::Wall);
+                h_world
+                    .grid
+                    .set_cell_at_grid_coords_int(IVec2::new(17, 0), WallGridCell::Wall);
+                h_world
+                    .grid
+                    .set_cell_at_grid_coords_int(IVec2::new(15, 0), WallGridCell::Wall);
                 first_person_view_horizontal.draw_view_horizontal(
                     max_ray_distance,
                     &h_world,
                     h_pos,
                     view_dir,
-                    0.5/horizontal_line_scale, // If this is less than 1, we need to scale the line width of the output render by the same ampunt
+                    0.5 / horizontal_line_scale, // If this is less than 1, we need to scale the line width of the output render by the same ampunt
                     Some(&first_person_view),
                     &h_world_floor,
                     &h_world_ceiling,
@@ -757,7 +783,7 @@ async fn main() {
                     true,
                     0.5,
                     &wall_bindings,
-                    current_pos_world.y
+                    current_pos_world.y,
                 );
 
                 first_person_view_horizontal.render(screen_size);
@@ -1042,12 +1068,6 @@ async fn main() {
                 collisions.clear();
 
                 // Draw frame
-                let (hide_floors_and_ceiling, hide_walls, plane_scale, line_width_scale) = if game_state == FirstPersonHorizonal {
-                    first_person_view.reset_image_buffer([0,0,0,0]);
-                    (true, true, plane_scale, 0.5)
-                } else {
-                    (false, false, plane_scale, horizontal_line_scale)
-                };
                 draw_first_person_frame(
                     &player_state,
                     player_facing,
@@ -1056,10 +1076,12 @@ async fn main() {
                     pos,
                     plane_scale,
                     &sprite_images,
-                    hide_floors_and_ceiling,
-                    hide_walls,
-                    line_width_scale,
-                    &mut first_person_view, &mut sprite_manager);
+                    false,
+                    false,
+                    horizontal_line_scale,
+                    &mut first_person_view,
+                    &mut sprite_manager,
+                );
 
                 first_person_view.render(screen_size);
 
