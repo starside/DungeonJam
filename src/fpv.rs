@@ -160,12 +160,8 @@ impl FirstPersonViewer {
                 Wall => self.z_buffer[y] = perp_wall_dist,
             }
 
-            // Fog and misc variables for textures
-            let dist_wall = perp_wall_dist;
-            let dist_player = 0.0f64;
-            let fog = fog_factor(perp_wall_dist, max_ray_distance) as f32;
-
             // tex size
+            let mut hit_ceiling = false;
             let sid: Option<SpriteId> = match hit_type {
                 Empty => None,
                 Wall => {
@@ -180,6 +176,7 @@ impl FirstPersonViewer {
                                 if ray_dir.y > 0.0 {
                                     Some(texture_bindings.floor)
                                 } else {
+                                    hit_ceiling = true;
                                     Some(texture_bindings.ceiling)
                                 }
                             }
@@ -189,6 +186,16 @@ impl FirstPersonViewer {
                 }
             };
 
+            // Fog and misc variables for textures
+            let dist_wall = perp_wall_dist;
+            let dist_player = 0.0f64;
+            let y_shading: f64 = 1.0 - (0.8 * (wall_hit_coord.y / world_size.y));
+            let fog = if hit_ceiling {
+                (fog_factor(perp_wall_dist, max_ray_distance))
+            } else {
+                (y_shading * fog_factor(perp_wall_dist, max_ray_distance))
+            } as f32;
+
             if let Some(texture_id) = sid {
                 let tex_width_u = sprite_manager.get_image(texture_id).width as usize;
                 let tex_height_u = sprite_manager.get_image(texture_id).height as usize;
@@ -197,9 +204,6 @@ impl FirstPersonViewer {
 
                 // Calculate texY
                 let mut tex_y = (wall_y * tex_height) as usize;
-                //if hit_side == Vertical && ray_dir_x * dir.x < 0.0 {tex_y = tex_height as usize - tex_y - 1;} // The ifs may need to change
-                //if hit_side == Horizontal && ray_dir_y * dir.x > 0.0 {tex_y = tex_height as usize - tex_y - 1;}
-                //println!("{}", dir.x/dir.x.abs());
 
                 // How much to step
                 let step = (tex_width / (line_width as f64));
@@ -270,28 +274,8 @@ impl FirstPersonViewer {
                     let right_wall_color =
                         right_wall_pixels[right_tex_y * right_wall_width + right_tex_x];
 
-                    let wall_fog = fog_factor(current_dist, max_ray_distance) as f32;
-
-                    let mut lc = Color::from_rgba(
-                        left_wall_color[0],
-                        left_wall_color[1],
-                        left_wall_color[2],
-                        left_wall_color[3],
-                    )
-                    .to_vec()
-                        * wall_fog;
-
-                    let mut rc = Color::from_rgba(
-                        right_wall_color[0],
-                        right_wall_color[1],
-                        right_wall_color[2],
-                        right_wall_color[3],
-                    )
-                    .to_vec()
-                        * wall_fog;
-
-                    rd[y * rw + x] = Color::from_vec(lc).into();
-                    rd[y * rw + (render_width as usize - 1 - x)] = Color::from_vec(rc).into();
+                    rd[y * rw + x] = left_wall_color;
+                    rd[y * rw + (render_width as usize - 1 - x)] = right_wall_color;
                 }
             }
         }

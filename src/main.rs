@@ -114,8 +114,8 @@ impl HorizontalPlayerState {
 
 impl PlayerState {
     fn player_look(&mut self) {
-        let look_up_max: f64 = 0.9;
-        let look_down_max: f64 = -1.14;
+        let look_up_max: f64 = PI / 2.1;
+        let look_down_max: f64 = -PI / 2.1;
         let look_speed: f64 = 1.5; // Time in seconds to cover range
         let look_range: f64 = look_up_max - look_down_max;
         let frame_time = get_frame_time() as f64;
