@@ -16,9 +16,7 @@ use crate::combat::Collision;
 use crate::fpv::{FirstPersonViewer, RoomTextureBindings, WallTextureBindings};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
-use crate::level::{
-    apply_boundary_conditions_f64, ucoords_to_icoords, world_space_centered_coord, Level,
-};
+use crate::level::{apply_boundary_conditions_f64, ucoords_to_icoords, world_space_centered_coord, Level, ucoords_to_dvec2};
 use crate::mob::MagicColor::{Black, White};
 use crate::mob::{mob_at_cell, MagicColor, MobData, MobId, MobType, Mobs, MONSTER_HP};
 use crate::player_movement::{
@@ -555,6 +553,7 @@ async fn main() {
     let max_ray_distance: f64 = 16.0;
     let (world_width, world_height) = (16usize, 64usize);
     let mut world = Level::new(Some("level.json"), world_width, world_height);
+    let world_size = ucoords_to_dvec2(world.grid.get_size());
 
     // Mob grid
     let mut mob_grid: Grid2D<MobId> = Grid2D::new(world_width, world_height);
@@ -768,6 +767,7 @@ async fn main() {
                     (0.5) / plane_scale.abs(),
                     &wall_bindings,
                     current_pos_world.y,
+                    world_size.as_vec2()
                 );
 
                 // Re-render old view
@@ -809,6 +809,7 @@ async fn main() {
                     0.5,
                     &wall_bindings,
                     current_pos_world.y,
+                    world_size.as_vec2()
                 );
 
                 first_person_view_horizontal.render(screen_size);

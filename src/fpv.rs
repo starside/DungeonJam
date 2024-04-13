@@ -296,6 +296,7 @@ impl FirstPersonViewer {
         lhs: f64,
         wall_texture_bindings: &WallTextureBindings,
         player_y: f64,
+        vert_world_size: Vec2
     ) {
         let plane = plane_scale * dir.perp();
         let (render_width, render_height) = self.render_size;
@@ -444,6 +445,8 @@ impl FirstPersonViewer {
                     let floor_color: Option<Color> = match floor_tile {
                         None => None,
                         Some(tex_id) => {
+                            let y_shading: f32 = 1.0 - (0.8 * (player_y.ceil() as f32 / vert_world_size.y));
+                            let y_fog = y_shading * fog;
                             let floor_tex = image_manager.get_image(tex_id);
                             let u = 1.0 - uv.y;
                             let v = 1.0 - (uv.x - map_x as f64);
@@ -451,7 +454,7 @@ impl FirstPersonViewer {
                             let tex_x = (u * (floor_tex.width() - 1) as f64) as u32;
                             let tex_y = (v * (floor_tex.height() - 1) as f64) as u32;
 
-                            let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * fog;
+                            let mut cv = floor_tex.get_pixel(tex_x, tex_y).to_vec() * y_fog;
                             cv.w = 1.0;
                             Some(Color::from_vec(cv))
                         }
