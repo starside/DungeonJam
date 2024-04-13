@@ -317,6 +317,11 @@ impl FirstPersonViewer {
         let (render_width, render_height) = self.render_size;
         let rd = self.render_image.get_image_data_mut();
 
+        debug_assert!(
+            wall_texture_bindings.left.repeat_speed == wall_texture_bindings.right.repeat_speed
+        );
+        let wall_repeat_speed = wall_texture_bindings.left.repeat_speed;
+
         let world_size = ucoords_to_dvec2(world.grid.get_size()).as_vec2();
 
         for x in 0..(render_width as usize) {
@@ -411,8 +416,8 @@ impl FirstPersonViewer {
                 let tex_height = image.height as f64;
 
                 // Calculate textX
-                let pwd = (ray_dir * perp_wall_dist).dot(DVec2::new(1.0, 0.0)).abs();
-                let tex_u = wrap_double_norm((pwd) / max_ray_distance);
+                let pwd = (ray_dir * perp_wall_dist).x.abs();
+                let tex_u = wrap_double_norm(wall_repeat_speed * pwd / max_ray_distance);
                 let tex_x = (tex_u * tex_width) as usize;
 
                 // How much to step
@@ -424,7 +429,8 @@ impl FirstPersonViewer {
                 let tex_pixels = image.get_image_data();
 
                 for y in draw_start_2 as usize..draw_end {
-                    let tex_y = wrap_double_range(tex_pos, tex_height - 1.0001) as usize;
+                    let tex_y = wrap_double_range(wall_repeat_speed * tex_pos, tex_height - 1.0001)
+                        as usize;
                     tex_pos += step;
 
                     if hit_side == Horizontal {

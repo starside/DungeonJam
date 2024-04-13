@@ -475,13 +475,13 @@ fn draw_first_person_frame(
     };
     let wall_bindings = WallTextureBindings {
         left: WallTextureBinding {
-            sprite_id: 4,
-            repeat_speed: 1.0,
+            sprite_id: 10,
+            repeat_speed: 16.0,
             pin: true,
         },
         right: WallTextureBinding {
-            sprite_id: 4,
-            repeat_speed: 1.0,
+            sprite_id: 11,
+            repeat_speed: 16.0,
             pin: true,
         },
     };
@@ -702,12 +702,12 @@ async fn main() {
 
                 let wall_bindings = WallTextureBindings {
                     left: WallTextureBinding {
-                        sprite_id: 4,
+                        sprite_id: 10,
                         repeat_speed: 16.0,
                         pin: true,
                     },
                     right: WallTextureBinding {
-                        sprite_id: 4,
+                        sprite_id: 11,
                         repeat_speed: 16.0,
                         pin: true,
                     },
