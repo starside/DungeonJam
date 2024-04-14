@@ -70,6 +70,7 @@ struct PlayerState {
     fire_cooldown: f64,
 
     new_player_pos: Option<(i32, i32)>,
+    new_player_look: Option<(f64, f64)>,
     lerp: f64,
 }
 
@@ -156,19 +157,30 @@ impl PlayerState {
                 match &x {
                     KeyCode::A => {
                         //Turn around
-                        self.look_rotation = 0.0;
-                        Turning(-1.0)
+                        //self.look_rotation = 0.0;
+                        if self.look_rotation != 0.0 {
+                            self.new_player_look = Some((self.look_rotation, 1.0));
+                            Moving
+                        } else {
+                            Turning(-1.0)
+                        }
+
                     }
                     KeyCode::D => {
                         //Turn around
-                        self.look_rotation = 0.0;
-                        Turning(1.0)
+                        //self.look_rotation = 0.0;
+                        if self.look_rotation != 0.0 {
+                            self.new_player_look = Some((self.look_rotation, 1.0));
+                            Moving
+                        } else {
+                            Turning(1.0)
+                        }
                     }
                     KeyCode::W => {
                         // Move forward
                         if self.look_rotation != 0.0 {
-                            self.look_rotation = 0.0;
-                            Idle
+                            self.new_player_look = Some((self.look_rotation, 1.0));
+                            Moving
                         } else {
                             if let Some(new_pos) = try_move(
                                 player_pos_ivec,
@@ -187,8 +199,8 @@ impl PlayerState {
                     KeyCode::S => {
                         // Move backwards
                         if self.look_rotation != 0.0 {
-                            self.look_rotation = 0.0;
-                            Idle
+                            self.new_player_look = Some((self.look_rotation, 1.0));
+                            Moving
                         } else {
                             if let Some(new_pos) = try_move(
                                 player_pos_ivec,
@@ -272,14 +284,15 @@ impl PlayerState {
         mana_color: &mut MagicColor,
         level: &Level,
     ) -> PlayerMode {
-        match self.new_player_pos {
+        let frame_time = get_frame_time();
+        let next_state_from_move = match self.new_player_pos {
             None => Idle,
             Some(x) => {
                 let p = player_pos.get_pos_ituple();
                 let begin_pos = world_space_centered_coord(p, 0.0, 0.0);
                 let final_pos = world_space_centered_coord(x, 0.0, 0.0);
                 let v = final_pos - begin_pos;
-                self.lerp += (get_frame_time() / 0.25) as f64;
+                self.lerp += (frame_time / 0.25) as f64;
                 self.lerp = self.lerp.min(1.0);
                 let upc = begin_pos + self.lerp * v;
                 *player_world_coord = DVec2::from(level::apply_boundary_conditions_f64(
@@ -293,7 +306,6 @@ impl PlayerState {
                     if res.is_err() {
                         eprintln!("Moved player to occupied mob position");
                     }
-                    self.new_player_pos = None;
                     Idle
                 } else {
                     if let Some(x) = get_last_key_pressed() {
@@ -304,6 +316,28 @@ impl PlayerState {
                     Moving
                 }
             }
+        };
+
+        let look_rate:f32 = PI as f32/0.3;
+        let next_state_from_look = match self.new_player_look {
+            None => Idle,
+            Some((start_look, ref mut lerp)) => {
+                *lerp = (*lerp - (frame_time*look_rate) as f64).clamp(0.0, 1.0);
+                self.look_rotation = start_look * *lerp;
+                if *lerp == 0.0 {
+                    Idle
+                } else {
+                    Moving
+                }
+            }
+        };
+
+        if next_state_from_move == Moving || next_state_from_look == Moving {
+            Moving
+        } else {
+            self.new_player_look = None;
+            self.new_player_pos = None;
+            Idle
         }
     }
 
@@ -595,6 +629,7 @@ async fn main() {
         mode: Idle,
         look_rotation: 0.0,
         new_player_pos: None,
+        new_player_look: None,
         lerp: 0.0,
         fire_cooldown: 0.0,
     };
