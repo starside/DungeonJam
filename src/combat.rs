@@ -15,6 +15,12 @@ pub struct DamageReport {
     pub hit_damage: f64
 }
 
+pub enum DamageIndicator {
+    PlayerHit,
+    PlayerHeal,
+    Other
+}
+
 impl Collision {
     pub fn new_with_bullet(target: MobId, color: MagicColor) -> Self {
         Collision {
@@ -25,14 +31,14 @@ impl Collision {
         }
     }
 
-    pub fn damage_target(&self, player_hp: &mut f64, max_player_hp: f64, player_color: MagicColor) {
+    pub fn damage_target(&self, player_hp: &mut f64, max_player_hp: f64, player_color: MagicColor) -> DamageIndicator {
         let player_to_monster_damage: f64 = 33.0;
         let monster_to_player_damage: f64 = 100.0;
         let ct = &self.collision_type;
         match ct {
             CollisionType::Bullet(m, bullet_color) => {
                 match m {
-                    MobId::NoMob => {}
+                    MobId::NoMob => {DamageIndicator::Other}
                     MobId::Mob(mob) => {
                         let mut m = mob.borrow_mut();
                         if m.get_color() != *bullet_color {
@@ -44,14 +50,18 @@ impl Collision {
                         if m.hp <= 0.0 {
                             m.is_alive = false;
                         }
+                        DamageIndicator::Other
                     }
                     MobId::Player => {
-                        let new_hp = if player_color != *bullet_color {
-                            *player_hp - monster_to_player_damage
+                        let (new_hp, indicator) = if player_color != *bullet_color {
+                            (*player_hp - monster_to_player_damage,
+                            DamageIndicator::PlayerHit)
                         } else {
-                            *player_hp + monster_to_player_damage/4.0
+                            (*player_hp + monster_to_player_damage/4.0,
+                            DamageIndicator::PlayerHeal)
                         };
                         *player_hp = new_hp.clamp(0.0, max_player_hp);
+                        indicator
                     }
                 }
             }

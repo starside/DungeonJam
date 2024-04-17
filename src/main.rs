@@ -12,11 +12,14 @@ use macroquad::prelude::*;
 use macroquad::telemetry::frame;
 use rand::Rng;
 
-use crate::combat::Collision;
+use crate::combat::{Collision, DamageIndicator};
 use crate::fpv::{FirstPersonViewer, RoomTextureBindings, WallTextureBindings};
 use crate::grid2d::{Grid2D, WallGridCell};
 use crate::image::ImageLoader;
-use crate::level::{apply_boundary_conditions_f64, ucoords_to_icoords, world_space_centered_coord, Level, ucoords_to_dvec2};
+use crate::level::{
+    apply_boundary_conditions_f64, ucoords_to_dvec2, ucoords_to_icoords,
+    world_space_centered_coord, Level,
+};
 use crate::mob::MagicColor::{Black, White};
 use crate::mob::{mob_at_cell, MagicColor, MobData, MobId, MobType, Mobs, MONSTER_HP};
 use crate::player_movement::{
@@ -78,6 +81,22 @@ struct HorizontalPlayerState {
     turn_direction: f64,
     look_rotation: f64,
     lerp: f64,
+}
+
+struct DamageUIState {
+    indicator: DamageIndicator,
+    timer: f64,
+    rate: f64
+}
+
+impl DamageUIState {
+    fn new(indicator: DamageIndicator) -> Self {
+        DamageUIState {
+            indicator: indicator,
+            timer: 0.3,
+            rate: 0.1
+        }
+    }
 }
 
 fn calculate_view_dir(rotation_angle: f64, player_facing: f64) -> DVec2 {
@@ -164,7 +183,6 @@ impl PlayerState {
                         } else {
                             Turning(-1.0)
                         }
-
                     }
                     KeyCode::D => {
                         //Turn around
@@ -318,11 +336,11 @@ impl PlayerState {
             }
         };
 
-        let look_rate:f32 = PI as f32/0.3;
+        let look_rate: f32 = PI as f32 / 0.3;
         let next_state_from_look = match self.new_player_look {
             None => Idle,
             Some((start_look, ref mut lerp)) => {
-                *lerp = (*lerp - (frame_time*look_rate) as f64).clamp(0.0, 1.0);
+                *lerp = (*lerp - (frame_time * look_rate) as f64).clamp(0.0, 1.0);
                 self.look_rotation = start_look * *lerp;
                 if *lerp == 0.0 {
                     Idle
@@ -559,6 +577,7 @@ async fn main() {
         "sprites/pezwall.png".to_string(),         //9
         "sprites/sf5.png".to_string(),             //10
         "sprites/sf6.png".to_string(),             //11
+        "sprites/damage.png".to_string(),          //12
     ];
 
     let mut flavor_image_files = vec![
@@ -580,6 +599,7 @@ async fn main() {
         .await
         .expect("Failed to load sprite images");
     let mut sprite_manager = sprites::Sprites::new();
+    let mut ui_sprites = sprites::Sprites::new();
 
     // Create mob manager
     let mut mobs = Mobs::new();
@@ -616,6 +636,9 @@ async fn main() {
     let player_max_hp: f64 = 639.0;
     let mut player_hp: f64 = player_max_hp;
     let fire_cooldown = 1.0;
+
+    // UI state
+    let mut damage_ui_state: Vec<DamageUIState> = Vec::new();
 
     // Level editor
     let mut level_editor = level::LevelEditor::new();
@@ -802,7 +825,7 @@ async fn main() {
                     (0.5) / plane_scale.abs(),
                     &wall_bindings,
                     current_pos_world.y,
-                    world_size.as_vec2()
+                    world_size.as_vec2(),
                 );
 
                 // Re-render old view
@@ -844,7 +867,7 @@ async fn main() {
                     0.5,
                     &wall_bindings,
                     current_pos_world.y,
-                    world_size.as_vec2()
+                    world_size.as_vec2(),
                 );
 
                 first_person_view_horizontal.render(screen_size);
@@ -1137,7 +1160,16 @@ async fn main() {
 
                 // Handle collisions
                 for c in collisions.iter() {
-                    c.damage_target(&mut player_hp, player_max_hp, mana_color);
+                    match c.damage_target(&mut player_hp, player_max_hp, mana_color) {
+                        DamageIndicator::PlayerHit => {
+                            println!("Adding damage ui for hit");
+                            damage_ui_state.push(
+                                DamageUIState::new(DamageIndicator::PlayerHit)
+                            )
+                        }
+                        DamageIndicator::PlayerHeal => {}
+                        DamageIndicator::Other => {}
+                    }
                 }
                 collisions.clear();
 
@@ -1156,6 +1188,41 @@ async fn main() {
                     &mut first_person_view,
                     &mut sprite_manager,
                 );
+
+                // Draw damage indicator
+                ui_sprites.clear_sprites();
+
+                if !damage_ui_state.is_empty()
+                {
+                    for hit in damage_ui_state.iter_mut() {
+                        match hit.indicator {
+                            DamageIndicator::PlayerHit => {
+                                let scale = 1.0 + 0.2*(hit.timer/hit.rate).cos();
+                                hit.timer = (hit.timer - last_frame_time).max(0.0);
+                                ui_sprites.add_sprite(
+                                    DVec2::new(0.0, 1.0),
+                                    (12, White),
+                                    DVec4::new(scale, scale, 0.0, 0.0),
+                                );
+                            },
+                            _ => {}
+                        }
+                    }
+                    damage_ui_state.retain_mut(|x| {
+                        x.timer > 0.0
+                    });
+
+                    first_person_view.reset_z_buffer();
+                    ui_sprites.draw_sprites(
+                        100.0,
+                        &sprite_images,
+                        &mut first_person_view,
+                        DVec2::new(2.0, 1.0),
+                        DVec2::new(-1.0, 0.0),
+                        1.0,
+                        2.0,
+                    );
+                }
 
                 first_person_view.render(screen_size);
 
