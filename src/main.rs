@@ -86,7 +86,7 @@ struct HorizontalPlayerState {
 struct DamageUIState {
     indicator: DamageIndicator,
     timer: f64,
-    rate: f64
+    rate: f64,
 }
 
 impl DamageUIState {
@@ -94,7 +94,7 @@ impl DamageUIState {
         DamageUIState {
             indicator: indicator,
             timer: 0.3,
-            rate: 0.1
+            rate: 0.1,
         }
     }
 }
@@ -578,6 +578,7 @@ async fn main() {
         "sprites/sf5.png".to_string(),             //10
         "sprites/sf6.png".to_string(),             //11
         "sprites/damage.png".to_string(),          //12
+        "sprites/heal.png".to_string(),            //13
     ];
 
     let mut flavor_image_files = vec![
@@ -1162,12 +1163,11 @@ async fn main() {
                 for c in collisions.iter() {
                     match c.damage_target(&mut player_hp, player_max_hp, mana_color) {
                         DamageIndicator::PlayerHit => {
-                            println!("Adding damage ui for hit");
-                            damage_ui_state.push(
-                                DamageUIState::new(DamageIndicator::PlayerHit)
-                            )
+                            damage_ui_state.push(DamageUIState::new(DamageIndicator::PlayerHit))
                         }
-                        DamageIndicator::PlayerHeal => {}
+                        DamageIndicator::PlayerHeal => {
+                            damage_ui_state.push(DamageUIState::new(DamageIndicator::PlayerHeal))
+                        }
                         DamageIndicator::Other => {}
                     }
                 }
@@ -1192,25 +1192,31 @@ async fn main() {
                 // Draw damage indicator
                 ui_sprites.clear_sprites();
 
-                if !damage_ui_state.is_empty()
-                {
+                if !damage_ui_state.is_empty() {
                     for hit in damage_ui_state.iter_mut() {
                         match hit.indicator {
                             DamageIndicator::PlayerHit => {
-                                let scale = 1.0 + 0.2*(hit.timer/hit.rate).cos();
+                                let scale = 1.0 + 0.2 * (hit.timer / hit.rate).cos();
                                 hit.timer = (hit.timer - last_frame_time).max(0.0);
                                 ui_sprites.add_sprite(
                                     DVec2::new(0.0, 1.0),
                                     (12, White),
                                     DVec4::new(scale, scale, 0.0, 0.0),
                                 );
-                            },
+                            }
+                            DamageIndicator::PlayerHeal => {
+                                let scale = 0.8 + 0.2 * (hit.timer / hit.rate).cos();
+                                hit.timer = (hit.timer - last_frame_time).max(0.0);
+                                ui_sprites.add_sprite(
+                                    DVec2::new(0.0, 1.0),
+                                    (13, White),
+                                    DVec4::new(scale, scale, 0.0, 0.0),
+                                );
+                            }
                             _ => {}
                         }
                     }
-                    damage_ui_state.retain_mut(|x| {
-                        x.timer > 0.0
-                    });
+                    damage_ui_state.retain_mut(|x| x.timer > 0.0);
 
                     first_person_view.reset_z_buffer();
                     ui_sprites.draw_sprites(
