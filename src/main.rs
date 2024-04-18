@@ -500,6 +500,53 @@ fn render_sprite_full_screen(
     sprite_manager.clear_sprites();
 }
 
+fn draw_damage_ui(
+    ui_sprites: &mut Sprites,
+    damage_ui_state: &mut Vec<DamageUIState>,
+    last_frame_time: f64,
+    sprite_images: &ImageLoader,
+    first_person_view: &mut FirstPersonViewer) {
+    ui_sprites.clear_sprites();
+
+    if !damage_ui_state.is_empty() {
+        for hit in damage_ui_state.iter_mut() {
+            match hit.indicator {
+                DamageIndicator::PlayerHit => {
+                    let scale = 1.0 + 0.2 * (hit.timer / hit.rate).cos();
+                    hit.timer = (hit.timer - last_frame_time).max(0.0);
+                    ui_sprites.add_sprite(
+                        DVec2::new(0.0, 1.0),
+                        (12, White),
+                        DVec4::new(scale, scale, 0.0, 0.0),
+                    );
+                }
+                DamageIndicator::PlayerHeal => {
+                    let scale = 0.8 + 0.2 * (hit.timer / hit.rate).cos();
+                    hit.timer = (hit.timer - last_frame_time).max(0.0);
+                    ui_sprites.add_sprite(
+                        DVec2::new(0.0, 1.0),
+                        (13, White),
+                        DVec4::new(scale, scale, 0.0, 0.0),
+                    );
+                }
+                _ => {}
+            }
+        }
+        damage_ui_state.retain_mut(|x| x.timer > 0.0);
+
+        first_person_view.reset_z_buffer();
+        ui_sprites.draw_sprites(
+            100.0,
+            sprite_images,
+            first_person_view,
+            DVec2::new(2.0, 1.0),
+            DVec2::new(-1.0, 0.0),
+            1.0,
+            2.0,
+        );
+    }
+}
+
 fn draw_first_person_frame(
     player_state: &PlayerState,
     player_facing: f64,
@@ -871,6 +918,14 @@ async fn main() {
                     world_size.as_vec2(),
                 );
 
+                // Draw damage indicator
+                draw_damage_ui(
+                    &mut ui_sprites,
+                    &mut damage_ui_state,
+                    last_frame_time,
+                    &sprite_images,
+                    &mut first_person_view_horizontal);
+
                 first_person_view_horizontal.render(screen_size);
 
                 // Draw FPS meter
@@ -1190,45 +1245,12 @@ async fn main() {
                 );
 
                 // Draw damage indicator
-                ui_sprites.clear_sprites();
-
-                if !damage_ui_state.is_empty() {
-                    for hit in damage_ui_state.iter_mut() {
-                        match hit.indicator {
-                            DamageIndicator::PlayerHit => {
-                                let scale = 1.0 + 0.2 * (hit.timer / hit.rate).cos();
-                                hit.timer = (hit.timer - last_frame_time).max(0.0);
-                                ui_sprites.add_sprite(
-                                    DVec2::new(0.0, 1.0),
-                                    (12, White),
-                                    DVec4::new(scale, scale, 0.0, 0.0),
-                                );
-                            }
-                            DamageIndicator::PlayerHeal => {
-                                let scale = 0.8 + 0.2 * (hit.timer / hit.rate).cos();
-                                hit.timer = (hit.timer - last_frame_time).max(0.0);
-                                ui_sprites.add_sprite(
-                                    DVec2::new(0.0, 1.0),
-                                    (13, White),
-                                    DVec4::new(scale, scale, 0.0, 0.0),
-                                );
-                            }
-                            _ => {}
-                        }
-                    }
-                    damage_ui_state.retain_mut(|x| x.timer > 0.0);
-
-                    first_person_view.reset_z_buffer();
-                    ui_sprites.draw_sprites(
-                        100.0,
-                        &sprite_images,
-                        &mut first_person_view,
-                        DVec2::new(2.0, 1.0),
-                        DVec2::new(-1.0, 0.0),
-                        1.0,
-                        2.0,
-                    );
-                }
+                draw_damage_ui(
+                    &mut ui_sprites,
+                    &mut damage_ui_state,
+                    last_frame_time,
+                    &sprite_images,
+                    &mut first_person_view);
 
                 first_person_view.render(screen_size);
 
