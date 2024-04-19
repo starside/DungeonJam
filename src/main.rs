@@ -21,7 +21,7 @@ use crate::level::{
     world_space_centered_coord, Level,
 };
 use crate::mob::MagicColor::{Black, White};
-use crate::mob::{mob_at_cell, MagicColor, MobData, MobId, MobType, Mobs, MONSTER_HP};
+use crate::mob::{mob_at_cell, MagicColor, MobData, MobId, MobType, Mobs, MONSTER_HP, Bullets, Bullet};
 use crate::player_movement::{
     has_floor, is_room_occupiable, is_supported_position, is_wall, try_move, MoveDirection,
     PlayerPosition,
@@ -149,6 +149,7 @@ impl PlayerState {
     fn do_idle_state(
         &mut self,
         mobs: &mut Mobs,
+        bullets: &mut Bullets,
         player_facing: &mut f64,
         player_pos: &PlayerPosition,
         level: &Level,
@@ -271,7 +272,7 @@ impl PlayerState {
                             let shoot_dir =
                                 calculate_view_dir(self.look_rotation, *player_facing).normalize();
                             let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
-                            mobs.new_bullet(ppos, shoot_dir, *mana_color);
+                            bullets.new_bullet(ppos, shoot_dir, *mana_color);
                         }
                         Idle
                     }
@@ -412,7 +413,7 @@ impl PlayerState {
 }
 
 fn move_bullets(
-    bullet: &mut MobData,
+    bullet: &mut Bullet,
     last_frame_time: f64,
     world: &Level,
     mob_grid: &Grid2D<MobId>,
@@ -651,6 +652,7 @@ async fn main() {
 
     // Create mob manager
     let mut mobs = Mobs::new();
+    let mut bullets = Bullets::new();
 
     let max_ray_distance: f64 = 16.0;
     let (world_width, world_height) = (16usize, 64usize);
@@ -958,6 +960,7 @@ async fn main() {
                 player_state.mode = match player_state.mode {
                     Idle => player_state.do_idle_state(
                         &mut mobs,
+                        &mut bullets,
                         &mut player_facing,
                         &player_pos,
                         &world,
@@ -1002,6 +1005,7 @@ async fn main() {
 
                 // Delete mobs marked as dead
                 mobs.delete_dead_mobs(&mut mob_grid);
+                bullets.delete_dead_bullets();
 
                 // Update sprites.  Not really efficient but whatever
                 sprite_manager.clear_sprites();
@@ -1017,12 +1021,14 @@ async fn main() {
                                 monster_scaling,
                             )
                         }
-                        MobType::Bullet => {
-                            let bullet_scaling = DVec4::new(0.1, 0.1, 0.0, 0.0);
-                            let sprite_type = (mana_color_srpite_id(m.get_color()), m.get_color());
-                            sprite_manager.add_sprite(m.get_pos(), sprite_type, bullet_scaling)
-                        }
                     }
+                }
+
+                // Add bullet sprites
+                for b in bullets.bullet_list.iter() {
+                    let bullet_scaling = DVec4::new(0.1, 0.1, 0.0, 0.0);
+                    let sprite_type = (mana_color_srpite_id(b.get_color()), b.get_color());
+                    sprite_manager.add_sprite(b.get_pos(), sprite_type, bullet_scaling)
                 }
 
                 // Add win room sprite
@@ -1067,16 +1073,6 @@ async fn main() {
                                     monster.can_move(),
                                 )
                             }
-                            MobType::Bullet => {
-                                move_bullets(
-                                    mob_type,
-                                    last_frame_time,
-                                    &world,
-                                    &mob_grid,
-                                    &mut collisions,
-                                );
-                                (false, false, false, false)
-                            }
                         }
                     };
 
@@ -1118,7 +1114,6 @@ async fn main() {
                                 MobType::Monster(x) => {
                                     x.start_move_cooldown(move_speed_modifier);
                                 }
-                                MobType::Bullet => {}
                             }
                         }
                     }
@@ -1135,7 +1130,6 @@ async fn main() {
                                     }
                                 }
                             }
-                            MobType::Bullet => {}
                         }
                     }
 
@@ -1145,7 +1139,6 @@ async fn main() {
                             MobType::Monster(_) => {
                                 mob_type.set_color(new_color);
                             }
-                            MobType::Bullet => {}
                         }
                     }
 
@@ -1155,7 +1148,6 @@ async fn main() {
                             MobType::Monster(monster) => {
                                 monster.start_color_change_cooldown();
                             }
-                            MobType::Bullet => {}
                         }
                     }
 
@@ -1189,7 +1181,6 @@ async fn main() {
                                     }
                                 }
                             }
-                            MobType::Bullet => {}
                         }
                     }
 
@@ -1199,7 +1190,6 @@ async fn main() {
                             MobType::Monster(monster) => {
                                 monster.start_attack_cooldown();
                             }
-                            MobType::Bullet => {}
                         }
                     }
 
@@ -1208,9 +1198,20 @@ async fn main() {
                     }
                 }
 
+                // Animate Bullets
+                for bullet in bullets.bullet_list.iter_mut() {
+                    move_bullets(
+                        bullet,
+                        last_frame_time,
+                        &world,
+                        &mob_grid,
+                        &mut collisions,
+                    );
+                }
+
                 // Create new bullets
                 for (pos, dir, color) in new_bullets.iter() {
-                    mobs.new_bullet(*pos, *dir, *color);
+                    bullets.new_bullet(*pos, *dir, *color);
                 }
                 new_bullets.clear();
 

@@ -261,7 +261,6 @@ impl LevelEditor {
             };
             match s.mob_type {
                 MobType::Monster(_) => {draw_circle(p.x, p.y, 3.0, mob_color);}
-                MobType::Bullet => {draw_circle(p.x, p.y, 1.0, WHITE);}
             }
         }
 

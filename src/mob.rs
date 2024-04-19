@@ -74,7 +74,6 @@ impl MonsterState {
 
 pub enum MobType {
     Monster(MonsterState),
-    Bullet
 }
 pub struct MobData {
     pub is_alive: AliveDead,
@@ -212,6 +211,73 @@ impl<'de> Deserialize<'de> for MobId {
     }
 }
 
+pub struct Bullet {
+    pub is_alive: AliveDead,
+    pub moving: Option<(DVec2, DVec2, f64)>, // start coord, end coord, lerp
+    pub move_speed: f64,
+    pos: DVec2,
+    color: MagicColor
+}
+
+impl Bullet {
+    pub fn set_color(&mut self, color: MagicColor) {
+        self.color = color;
+    }
+
+    pub fn get_color(&self) -> MagicColor {
+        self.color
+    }
+
+    pub fn get_pos(&self) -> DVec2 {
+        self.pos
+    }
+
+    pub fn set_pos(&mut self, pos: DVec2, world_size: (usize, usize)) {
+        self.pos = apply_boundary_conditions_f64(pos, world_size);
+    }
+}
+
+pub struct Bullets {
+    pub bullet_list: Vec<Bullet>
+}
+
+impl Bullets {
+    pub fn new() -> Self {
+        Bullets {
+            bullet_list: Vec::new()
+        }
+    }
+
+    pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, color: MagicColor) -> usize {
+        let float_speed = 2.0; // In world coordinates per second
+        let max_lifetime = 5.0;
+        let dir_vec = dir.normalize();
+
+        let pos =
+            pos + 0.25*dir_vec +
+                ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * dir_vec); // start out of player room
+
+        let end_pos = float_speed*max_lifetime*dir_vec + pos;
+
+        let bullet = Bullet {
+            is_alive: true,
+            moving: Some((pos, end_pos, 0.0)),
+            move_speed: float_speed,
+            pos,
+            color,
+        };
+
+        self.bullet_list.push(bullet);
+        self.bullet_list.len() - 1
+    }
+    
+    pub fn delete_dead_bullets(&mut self) {
+        self.bullet_list.retain_mut(|x| {
+            x.is_alive
+        });
+    }
+
+}
 
 
 pub struct Mobs {
@@ -235,7 +301,6 @@ impl Mobs {
                     MobType::Monster(_) => {
                         mob_grid.set_cell_at_grid_coords_int(mob.pos.as_ivec2(), MobId::NoMob);
                     }
-                    MobType::Bullet => {}
                 }
             }
         }
@@ -277,31 +342,6 @@ impl Mobs {
             }
         }
         false
-    }
-
-    pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, color: MagicColor) -> usize {
-        let float_speed = 2.0; // In world coordinates per second
-        let max_lifetime = 5.0;
-        let dir_vec = dir.normalize();
-
-        let pos =
-            pos + 0.25*dir_vec +
-                ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * dir_vec); // start out of player room
-
-        let end_pos = float_speed*max_lifetime*dir_vec + pos;
-
-        let mob = MobData {
-            is_alive: true,
-            hp: 1.0,
-            moving: Some((pos, end_pos, 0.0)),
-            move_speed: float_speed,
-            pos,
-            color,
-            mob_type: MobType::Bullet
-        };
-
-        self.mob_list.push(Rc::new(RefCell::new(Box::new(mob))));
-        self.mob_list.len() - 1
     }
 }
 
