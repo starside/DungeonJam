@@ -1,6 +1,8 @@
 use crate::mob;
 use crate::mob::{MagicColor, MobId};
 
+pub const PLAYER_HIT_DISTANCE: f64 = 0.4;
+
 pub enum CollisionType {
     Bullet(MobId, MagicColor)
 }

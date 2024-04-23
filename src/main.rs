@@ -272,7 +272,7 @@ impl PlayerState {
                             let shoot_dir =
                                 calculate_view_dir(self.look_rotation, *player_facing).normalize();
                             let ppos = player_pos.get_pos_dvec() + DVec2::from((0.5, 0.5)); // center in square
-                            bullets.new_bullet(ppos, shoot_dir, *mana_color);
+                            bullets.new_bullet(ppos, shoot_dir, combat::PLAYER_HIT_DISTANCE + 0.01, *mana_color);
                         }
                         Idle
                     }
@@ -434,22 +434,32 @@ fn move_bullets(
                 apply_boundary_conditions_f64(start.lerp(*end, new_lerp), world.grid.get_size());
 
             // Check for hit with entity
-            let mob_hit_by_bullet = mob_at_cell(new_pos.as_ivec2(), mob_grid);
+            let new_pos_ivec = new_pos.as_ivec2();
+            let mob_hit_by_bullet = mob_at_cell(new_pos_ivec, mob_grid);
+
             match mob_hit_by_bullet {
                 MobId::NoMob => {}
                 MobId::Mob(_) => {
-                    bullet.is_alive = false;
-                    collisions.push(Collision::new_with_bullet(
-                        mob_hit_by_bullet.clone(),
-                        bullet.get_color(),
-                    ));
+                    let dist = new_pos.distance(world_space_centered_coord((new_pos_ivec.x, new_pos_ivec.y), 0.0, 0.0));
+                    if dist < mob::MONSTER_HIT_DISTANCE
+                    {
+                        bullet.is_alive = false;
+                        collisions.push(Collision::new_with_bullet(
+                            mob_hit_by_bullet.clone(),
+                            bullet.get_color(),
+                        ));
+                    }
                 }
                 MobId::Player => {
-                    collisions.push(Collision::new_with_bullet(
-                        MobId::Player,
-                        bullet.get_color(),
-                    ));
-                    bullet.is_alive = false;
+                    let dist = new_pos.distance(world_space_centered_coord((new_pos_ivec.x, new_pos_ivec.y), 0.0, 0.0));
+                    if dist < combat::PLAYER_HIT_DISTANCE
+                    {
+                        collisions.push(Collision::new_with_bullet(
+                            MobId::Player,
+                            bullet.get_color(),
+                        ));
+                        bullet.is_alive = false;
+                    }
                 }
             }
 
@@ -714,7 +724,7 @@ async fn main() {
 
     // Array to store collisions
     let mut collisions: Vec<Collision> = Vec::with_capacity(16);
-    let mut new_bullets: Vec<(DVec2, DVec2, MagicColor)> = Vec::new();
+    let mut new_bullets: Vec<(DVec2, DVec2, f64, MagicColor)> = Vec::new();
 
     let mut full_screen_mode = false;
     set_fullscreen(full_screen_mode);
@@ -1151,7 +1161,7 @@ async fn main() {
                         }
                     }
 
-                    let mut fire: Option<(DVec2, DVec2, MagicColor)> = None;
+                    let mut fire: Option<(DVec2, DVec2, f64, MagicColor)> = None;
                     if can_attack {
                         let mob_type = &m.borrow();
                         match &mob_type.mob_type {
@@ -1172,6 +1182,7 @@ async fn main() {
                                                         fire = Some((
                                                             mob_type.get_pos(),
                                                             dir.normalize(),
+                                                            mob::MONSTER_HIT_DISTANCE + 0.01,
                                                             mob_type.get_color(),
                                                         ));
                                                     }
@@ -1210,8 +1221,8 @@ async fn main() {
                 }
 
                 // Create new bullets
-                for (pos, dir, color) in new_bullets.iter() {
-                    bullets.new_bullet(*pos, *dir, *color);
+                for (pos, dir, offset,color) in new_bullets.iter() {
+                    bullets.new_bullet(*pos, *dir, *offset, *color);
                 }
                 new_bullets.clear();
 

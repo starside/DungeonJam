@@ -19,6 +19,8 @@ const MONSTER_COLOR_CHANGE_COOLDOWN: f64 = 4.0;
 
 const MONSTER_LINE_OF_SIGHT: f64 = 12.0;
 
+pub const MONSTER_HIT_DISTANCE: f64 = 0.4;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MagicColor {
     White,
@@ -248,15 +250,13 @@ impl Bullets {
         }
     }
 
-    pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, color: MagicColor) -> usize {
+    pub fn new_bullet(&mut self, pos: DVec2, dir: DVec2, offset_in_dir: f64, color: MagicColor) -> usize {
         let float_speed = 2.0; // In world coordinates per second
         let max_lifetime = 5.0;
         let dir_vec = dir.normalize();
 
         let pos =
-            pos + 0.25*dir_vec +
-                ((0.55f64.powi(2) + 0.55f64.powi(2)).sqrt() * dir_vec); // start out of player room
-
+            pos + offset_in_dir*dir_vec;
         let end_pos = float_speed*max_lifetime*dir_vec + pos;
 
         let bullet = Bullet {
@@ -270,7 +270,7 @@ impl Bullets {
         self.bullet_list.push(bullet);
         self.bullet_list.len() - 1
     }
-    
+
     pub fn delete_dead_bullets(&mut self) {
         self.bullet_list.retain_mut(|x| {
             x.is_alive
